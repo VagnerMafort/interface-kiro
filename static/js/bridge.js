@@ -2,8 +2,10 @@
  * Kiro Mobile Bridge v2.0 - Interface estilo ChatGPT
  */
 
-const RFB = window.RFB;
 import { VoiceModule } from "./voice.js";
+
+// Espera RFB carregar
+function getRFB() { return window.RFB; }
 
 const state = {
     rfb: null,
@@ -38,6 +40,8 @@ function connect() {
     const proto = location.protocol === "https:" ? "wss" : "ws";
     try {
         $("#vnc-screen").innerHTML = "";
+        const RFB = getRFB();
+        if (!RFB) { showStatus("Erro: noVNC não carregou. Recarregue a página.", "error"); $("#btn-connect").disabled = false; return; }
         state.rfb = new RFB($("#vnc-screen"), `${proto}://${host}:${port}`, {
             credentials: { password },
             wsProtocols: ["binary"],

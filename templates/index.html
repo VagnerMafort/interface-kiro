@@ -263,8 +263,10 @@
     <script type="module">
         import RFB from '/static/vendor/noVNC/core/rfb.js';
         window.RFB = RFB;
+
+        // Carrega bridge depois do RFB estar disponível
+        import('./static/js/voice.js');
+        import('./static/js/bridge.js');
     </script>
-    <script src="/static/js/voice.js" type="module"></script>
-    <script src="/static/js/bridge.js" type="module"></script>
 </body>
 </html>
