@@ -3,7 +3,8 @@
  * Interface com 3 modos: Desktop, Foco e Chat
  */
 
-import RFB from "https://cdn.jsdelivr.net/npm/@novnc/novnc@1.4.0/lib/rfb.js";
+// RFB é carregado globalmente via index.html
+const RFB = window.RFB;
 import { VoiceModule } from "./voice.js";
 
 // ─── Estado ──────────────────────────────────────

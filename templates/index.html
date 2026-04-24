@@ -366,7 +366,12 @@
     </div>
 
     <!-- noVNC -->
-    <script src="https://cdn.jsdelivr.net/npm/@novnc/novnc@1.4.0/lib/rfb.js" type="module" crossorigin></script>
+    <script type="module">
+        // Importa noVNC do servidor local (websockify serve os arquivos do noVNC)
+        import RFB from '/static/vendor/noVNC/core/rfb.js';
+        window.RFB = RFB;
+    </script>
+    <script src="/static/js/voice.js" type="module"></script>
     <script src="/static/js/bridge.js" type="module"></script>
 </body>
 </html>

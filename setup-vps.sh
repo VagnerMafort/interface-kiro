@@ -144,6 +144,16 @@ pip install --upgrade pip -q
 pip install -r requirements.txt -q
 pip install websockify -q
 
+# Baixar noVNC localmente
+NOVNC_DIR="$BRIDGE_DIR/static/vendor/noVNC"
+if [ ! -d "$NOVNC_DIR" ]; then
+    echo "  -> Baixando noVNC..."
+    git clone --depth 1 https://github.com/novnc/noVNC.git "$NOVNC_DIR"
+    echo "  -> noVNC instalado"
+else
+    echo "  -> noVNC já existe"
+fi
+
 # Criar .env
 cat > .env << ENVFILE
 VNC_HOST=localhost
