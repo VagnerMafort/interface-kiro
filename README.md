@@ -99,11 +99,37 @@ Edite o arquivo `.env`:
 2. Toque em "⋮" > "Adicionar à tela inicial"
 3. Agora funciona como um app nativo!
 
+## Setup no VPS (Recomendado)
+
+Rode o Kiro direto num VPS e acesse de qualquer lugar pelo celular:
+
+```bash
+# No VPS (Ubuntu/Debian)
+git clone https://github.com/VagnerMafort/interface-kiro.git
+cd interface-kiro
+chmod +x setup-vps.sh
+./setup-vps.sh
+```
+
+Isso instala automaticamente:
+- Desktop virtual XFCE
+- TigerVNC Server
+- Kiro Bridge (interface mobile)
+- Serviços systemd (inicia no boot)
+
+Depois é só acessar `http://IP_DO_VPS:8080` pelo celular.
+
 ## Requisitos
 
+**VPS:**
+- Ubuntu 22.04+ ou Debian 12+
+- Mínimo 2GB RAM, 2 vCPU
+- Python 3.8+
+
+**Local:**
 - Python 3.8+
 - Servidor VNC rodando no desktop
-- Celular e desktop na mesma rede (ou VPN)
+- Celular e desktop na mesma rede (ou VPN/Tailscale)
 
 ## Licença
 
