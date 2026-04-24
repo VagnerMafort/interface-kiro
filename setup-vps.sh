@@ -124,6 +124,13 @@ if ! command -v code &>/dev/null; then
     echo "  -> VS Code instalado (substitua pelo Kiro quando disponível)"
 fi
 
+# Clonar projetos do usuário
+echo "  -> Clonando projetos..."
+cd /root
+[ ! -d "interface-kiro" ] && git clone https://github.com/VagnerMafort/interface-kiro.git 2>/dev/null || true
+[ ! -d "veo3-tool" ] && git clone https://github.com/VagnerMafort/veo3-tool.git 2>/dev/null || true
+echo "  -> Projetos clonados em /root"
+
 # ─── 5. Instalar Python e dependências ───────────
 echo ""
 echo "[5/7] Instalando Python e dependências da bridge..."

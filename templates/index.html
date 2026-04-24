@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#1e1e2e">
-    <title>Kiro Mobile Bridge</title>
+    <meta name="theme-color" content="#212121">
+    <title>Kiro Mobile</title>
     <link rel="manifest" href="/static/manifest.json">
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -15,359 +15,252 @@
 <body>
     <!-- ═══ Tela de Conexão ═══ -->
     <div id="connect-screen" class="screen active">
-        <div class="connect-card">
-            <div class="logo">
-                <div class="logo-icon">
-                    <i class="fas fa-mobile-screen-button"></i>
-                    <i class="fas fa-arrows-left-right logo-arrows"></i>
-                    <i class="fas fa-desktop"></i>
+        <div class="connect-container">
+            <div class="connect-logo">
+                <div class="logo-circle">
+                    <i class="fas fa-bolt"></i>
                 </div>
-                <h1>Kiro Mobile Bridge</h1>
-                <p>Seu Kiro IDE no celular</p>
+                <h1>Kiro Mobile</h1>
+                <p>Acesse seu workspace de qualquer lugar</p>
             </div>
             <div class="connect-form">
-                <div class="input-group">
-                    <label><i class="fas fa-server"></i> Host</label>
-                    <input type="text" id="vnc-host" value="{{ vnc_host }}" placeholder="localhost ou IP">
+                <div class="form-field">
+                    <input type="text" id="vnc-host" value="{{ vnc_host }}" placeholder="Host (ex: 144.91.105.101)">
                 </div>
-                <div class="input-group">
-                    <label><i class="fas fa-plug"></i> Porta</label>
-                    <input type="number" id="vnc-port" value="{{ websockify_port }}" placeholder="6081">
+                <div class="form-row">
+                    <div class="form-field">
+                        <input type="number" id="vnc-port" value="{{ websockify_port }}" placeholder="Porta">
+                    </div>
+                    <div class="form-field">
+                        <input type="password" id="vnc-password" value="{{ vnc_password }}" placeholder="Senha">
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label><i class="fas fa-lock"></i> Senha</label>
-                    <input type="password" id="vnc-password" value="{{ vnc_password }}" placeholder="Senha VNC">
-                </div>
-                <button id="btn-connect" class="btn-primary">
-                    <i class="fas fa-plug"></i> Conectar ao Desktop
+                <button id="btn-connect" class="btn-connect">
+                    Conectar <i class="fas fa-arrow-right"></i>
                 </button>
             </div>
-            <div id="connect-status" class="status-msg"></div>
-            <div class="connect-tips">
-                <p><i class="fas fa-info-circle"></i> Dica: faça login no Kiro pelo desktop virtual antes de conectar</p>
-            </div>
+            <div id="connect-status" class="connect-status"></div>
         </div>
     </div>
 
     <!-- ═══ Tela Principal ═══ -->
     <div id="main-screen" class="screen">
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <div class="brand-icon"><i class="fas fa-bolt"></i></div>
+                    <span>Kiro Mobile</span>
+                </div>
+                <button id="btn-close-sidebar" class="icon-btn"><i class="fas fa-times"></i></button>
+            </div>
 
-        <!-- Top Bar -->
-        <div id="top-bar">
-            <button id="btn-menu" class="bar-btn" aria-label="Menu">
-                <i class="fas fa-bars"></i>
-            </button>
-            <div id="view-tabs">
-                <button class="view-tab active" data-view="desktop">
-                    <i class="fas fa-desktop"></i>
-                    <span>Desktop</span>
+            <div class="sidebar-section">
+                <div class="sidebar-label">Visualização</div>
+                <button class="sidebar-item active" data-view="desktop">
+                    <i class="fas fa-desktop"></i> Desktop Remoto
                 </button>
-                <button class="view-tab" data-view="focus">
-                    <i class="fas fa-expand"></i>
-                    <span>Foco</span>
+                <button class="sidebar-item" data-view="focus">
+                    <i class="fas fa-crop-simple"></i> Modo Foco
                 </button>
-                <button class="view-tab" data-view="chat">
-                    <i class="fas fa-comments"></i>
-                    <span>Chat</span>
+                <button class="sidebar-item" data-view="actions">
+                    <i class="fas fa-bolt"></i> Ações Rápidas
                 </button>
             </div>
-            <button id="btn-disconnect" class="bar-btn" aria-label="Desconectar">
-                <i class="fas fa-power-off"></i>
-            </button>
-        </div>
 
-        <!-- View: Desktop Completo -->
-        <div id="view-desktop" class="view-panel active">
-            <div id="vnc-container">
-                <div id="vnc-screen"></div>
-                <div id="loading-overlay">
-                    <div class="spinner"></div>
-                    <p>Conectando ao desktop...</p>
+            <div class="sidebar-section">
+                <div class="sidebar-label">Projetos</div>
+                <div class="project-item">
+                    <i class="fas fa-folder"></i> interface-kiro
+                </div>
+                <div class="project-item">
+                    <i class="fas fa-folder"></i> veo3-tool
                 </div>
             </div>
-        </div>
 
-        <!-- View: Modo Foco (zoom na área do editor) -->
-        <div id="view-focus" class="view-panel">
-            <div class="focus-controls">
-                <button class="focus-area-btn active" data-area="editor">
-                    <i class="fas fa-code"></i> Editor
-                </button>
-                <button class="focus-area-btn" data-area="explorer">
-                    <i class="fas fa-folder-tree"></i> Arquivos
-                </button>
-                <button class="focus-area-btn" data-area="terminal">
-                    <i class="fas fa-terminal"></i> Terminal
-                </button>
-                <button class="focus-area-btn" data-area="chat">
-                    <i class="fas fa-robot"></i> Kiro AI
-                </button>
+            <div class="sidebar-section">
+                <div class="sidebar-label">Qualidade</div>
+                <div class="quality-row">
+                    <button class="chip active" data-quality="auto">Auto</button>
+                    <button class="chip" data-quality="high">Alta</button>
+                    <button class="chip" data-quality="medium">Média</button>
+                    <button class="chip" data-quality="low">Baixa</button>
+                </div>
             </div>
-            <div id="focus-viewport">
-                <canvas id="focus-canvas"></canvas>
-            </div>
-            <div class="focus-hint">
-                <i class="fas fa-hand-pointer"></i> Arraste para navegar · Pinch para zoom
-            </div>
-        </div>
 
-        <!-- View: Chat Kiro (interação direta) -->
-        <div id="view-chat" class="view-panel">
-            <div class="chat-header">
-                <div class="chat-header-info">
-                    <i class="fas fa-robot"></i>
-                    <span>Kiro AI Assistant</span>
-                </div>
-                <div class="chat-status" id="chat-status">
-                    <span class="status-dot"></span> Conectado via desktop
-                </div>
-            </div>
-            <div class="chat-instructions">
-                <div class="instruction-card">
-                    <i class="fas fa-info-circle"></i>
-                    <p>O chat do Kiro funciona pelo desktop virtual. Use o <strong>Modo Foco > Kiro AI</strong> para interagir diretamente com o chat, ou use o <strong>Desktop</strong> completo.</p>
-                </div>
-                <div class="quick-actions">
-                    <h4>Ações Rápidas</h4>
-                    <button class="quick-action-btn" id="btn-chat-mic">
-                        <i class="fas fa-microphone"></i> Falar para o Kiro (voz → texto)
-                    </button>
-                    <button class="quick-action-btn" id="btn-chat-tts">
-                        <i class="fas fa-volume-up"></i> Ouvir resposta (texto → voz)
-                    </button>
-                    <div class="quick-actions-divider"></div>
-                    <button class="quick-action-btn" data-shortcut="ctrl+shift+p">
-                        <i class="fas fa-terminal"></i> Command Palette
-                    </button>
-                    <button class="quick-action-btn" data-shortcut="ctrl+shift+i">
-                        <i class="fas fa-robot"></i> Abrir Chat Kiro
-                    </button>
-                    <button class="quick-action-btn" data-shortcut="ctrl+p">
-                        <i class="fas fa-file-code"></i> Quick Open
-                    </button>
-                    <button class="quick-action-btn" data-shortcut="ctrl+grave">
-                        <i class="fas fa-terminal"></i> Toggle Terminal
-                    </button>
-                    <button class="quick-action-btn" data-shortcut="ctrl+b">
-                        <i class="fas fa-columns"></i> Toggle Sidebar
-                    </button>
-                    <button class="quick-action-btn" data-shortcut="ctrl+s">
-                        <i class="fas fa-save"></i> Salvar
-                    </button>
-                    <button class="quick-action-btn" data-shortcut="ctrl+z">
-                        <i class="fas fa-undo"></i> Desfazer
-                    </button>
-                    <button class="quick-action-btn" data-shortcut="ctrl+shift+z">
-                        <i class="fas fa-redo"></i> Refazer
-                    </button>
-                    <button class="quick-action-btn" data-shortcut="ctrl+f">
-                        <i class="fas fa-search"></i> Buscar
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Shortcut Bar Flutuante -->
-        <div id="shortcut-bar" class="collapsed">
-            <button id="btn-toggle-shortcuts" class="toggle-btn" aria-label="Atalhos">
-                <i class="fas fa-keyboard"></i>
-            </button>
-            <div class="shortcuts-content">
-                <button class="shortcut-btn" data-keys="ctrl+s" title="Salvar">
-                    <i class="fas fa-save"></i>
+            <div class="sidebar-footer">
+                <button id="btn-theme" class="sidebar-item">
+                    <i class="fas fa-moon"></i> <span id="theme-label">Modo Claro</span>
                 </button>
-                <button class="shortcut-btn" data-keys="ctrl+z" title="Desfazer">
-                    <i class="fas fa-undo"></i>
-                </button>
-                <button class="shortcut-btn" data-keys="ctrl+shift+z" title="Refazer">
-                    <i class="fas fa-redo"></i>
-                </button>
-                <button class="shortcut-btn" data-keys="ctrl+c" title="Copiar">
-                    <i class="fas fa-copy"></i>
-                </button>
-                <button class="shortcut-btn" data-keys="ctrl+v" title="Colar">
-                    <i class="fas fa-paste"></i>
-                </button>
-                <button class="shortcut-btn" data-keys="ctrl+x" title="Recortar">
-                    <i class="fas fa-scissors"></i>
-                </button>
-                <button class="shortcut-btn" data-keys="ctrl+f" title="Buscar">
-                    <i class="fas fa-search"></i>
-                </button>
-                <button class="shortcut-btn" data-keys="ctrl+shift+p" title="Command Palette">
-                    <i class="fas fa-terminal"></i>
-                </button>
-                <button class="shortcut-btn" data-keys="ctrl+p" title="Quick Open">
-                    <i class="fas fa-file-code"></i>
-                </button>
-                <button class="shortcut-btn" data-keys="ctrl+b" title="Toggle Sidebar">
-                    <i class="fas fa-columns"></i>
-                </button>
-                <button class="shortcut-btn" data-keys="ctrl+grave" title="Terminal">
-                    <i class="fas fa-terminal"></i>
-                </button>
-                <button class="shortcut-btn" data-keys="escape" title="Escape">
-                    Esc
+                <button id="btn-disconnect-sidebar" class="sidebar-item danger">
+                    <i class="fas fa-power-off"></i> Desconectar
                 </button>
             </div>
         </div>
+        <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
 
-        <!-- Botões Flutuantes -->
-        <button id="btn-keyboard" class="floating-btn keyboard-btn" aria-label="Teclado">
-            <i class="fas fa-keyboard"></i>
-        </button>
-        <input type="text" id="hidden-keyboard-input" autocomplete="off" autocorrect="off"
-               autocapitalize="off" spellcheck="false">
-
-        <button id="btn-mouse-mode" class="floating-btn mouse-btn" aria-label="Modo mouse">
-            <i class="fas fa-mouse-pointer"></i>
-        </button>
-
-        <button id="btn-fullscreen" class="floating-btn fullscreen-btn" aria-label="Tela cheia">
-            <i class="fas fa-expand"></i>
-        </button>
-
-        <!-- Botão Microfone (STT) -->
-        <button id="btn-mic" class="floating-btn mic-btn" aria-label="Microfone">
-            <i class="fas fa-microphone"></i>
-        </button>
-
-        <!-- Painel de Voz -->
-        <div id="voice-panel" class="voice-panel hidden">
-            <div class="voice-panel-header">
-                <span id="voice-status-text">Toque no microfone para falar</span>
-                <button id="btn-close-voice" aria-label="Fechar"><i class="fas fa-times"></i></button>
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="topbar">
+                <button id="btn-sidebar" class="icon-btn"><i class="fas fa-bars"></i></button>
+                <span class="topbar-title" id="topbar-title">Desktop Remoto</span>
+                <div class="topbar-actions">
+                    <button id="btn-fullscreen-top" class="icon-btn"><i class="fas fa-expand"></i></button>
+                </div>
             </div>
-            <div class="voice-visualizer">
-                <div id="voice-indicator" class="voice-indicator">
-                    <div class="pulse-ring"></div>
-                    <div class="mic-circle">
-                        <i class="fas fa-microphone"></i>
+
+            <!-- View: Desktop -->
+            <div id="view-desktop" class="view active">
+                <div id="vnc-container">
+                    <div id="vnc-screen"></div>
+                    <div id="loading-overlay">
+                        <div class="loader"></div>
+                        <p>Conectando...</p>
                     </div>
                 </div>
             </div>
-            <div id="voice-transcript" class="voice-transcript">
-                <p id="transcript-text" class="transcript-placeholder">Sua fala aparecerá aqui...</p>
-            </div>
-            <div class="voice-actions">
-                <button id="btn-voice-send" class="voice-action-btn send-btn" disabled>
-                    <i class="fas fa-paper-plane"></i> Enviar como texto
-                </button>
-                <button id="btn-voice-clear" class="voice-action-btn clear-btn">
-                    <i class="fas fa-eraser"></i> Limpar
-                </button>
-            </div>
-            <div class="voice-settings">
-                <label class="voice-setting">
-                    <input type="checkbox" id="voice-auto-send" checked>
-                    Enviar automaticamente ao parar de falar
-                </label>
-                <label class="voice-setting">
-                    <select id="voice-lang">
-                        <option value="pt-BR" selected>Português (BR)</option>
-                        <option value="en-US">English (US)</option>
-                        <option value="es-ES">Español</option>
-                    </select>
-                </label>
-            </div>
-        </div>
 
-        <!-- Botão TTS (ler resposta) -->
-        <button id="btn-tts" class="floating-btn tts-btn" aria-label="Ler em voz alta">
-            <i class="fas fa-volume-up"></i>
-        </button>
+            <!-- View: Foco -->
+            <div id="view-focus" class="view">
+                <div class="focus-tabs">
+                    <button class="focus-tab active" data-area="editor"><i class="fas fa-code"></i> Editor</button>
+                    <button class="focus-tab" data-area="explorer"><i class="fas fa-folder"></i> Arquivos</button>
+                    <button class="focus-tab" data-area="terminal"><i class="fas fa-terminal"></i> Terminal</button>
+                    <button class="focus-tab" data-area="chat"><i class="fas fa-robot"></i> Kiro AI</button>
+                </div>
+                <div id="focus-viewport">
+                    <canvas id="focus-canvas"></canvas>
+                </div>
+            </div>
 
-        <!-- Painel TTS -->
-        <div id="tts-panel" class="tts-panel hidden">
-            <div class="tts-panel-header">
-                <span>Texto para Áudio</span>
-                <button id="btn-close-tts" aria-label="Fechar"><i class="fas fa-times"></i></button>
-            </div>
-            <textarea id="tts-text" class="tts-textarea" placeholder="Cole ou digite o texto que deseja ouvir..."></textarea>
-            <div class="tts-actions">
-                <button id="btn-tts-play" class="voice-action-btn send-btn">
-                    <i class="fas fa-play"></i> Ouvir
-                </button>
-                <button id="btn-tts-stop" class="voice-action-btn clear-btn" disabled>
-                    <i class="fas fa-stop"></i> Parar
-                </button>
-                <button id="btn-tts-paste" class="voice-action-btn">
-                    <i class="fas fa-clipboard"></i> Colar
-                </button>
-            </div>
-        </div>
-
-        <!-- Painel Lateral -->
-        <div id="side-panel" class="hidden">
-            <div class="panel-header">
-                <h3><i class="fas fa-cog"></i> Configurações</h3>
-                <button id="btn-close-panel" aria-label="Fechar"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="panel-body">
-                <div class="panel-section">
-                    <h4>Qualidade de Imagem</h4>
-                    <div class="quality-options">
-                        <button class="quality-btn active" data-quality="auto">Auto</button>
-                        <button class="quality-btn" data-quality="high">Alta</button>
-                        <button class="quality-btn" data-quality="medium">Média</button>
-                        <button class="quality-btn" data-quality="low">Baixa</button>
+            <!-- View: Ações Rápidas -->
+            <div id="view-actions" class="view">
+                <div class="actions-container">
+                    <div class="actions-header">
+                        <div class="actions-icon"><i class="fas fa-bolt"></i></div>
+                        <h2>Ações Rápidas</h2>
+                        <p>Envie comandos para o Kiro</p>
+                    </div>
+                    <div class="actions-grid">
+                        <button class="action-card" data-shortcut="ctrl+shift+i">
+                            <i class="fas fa-robot"></i>
+                            <span>Chat Kiro</span>
+                        </button>
+                        <button class="action-card" data-shortcut="ctrl+shift+p">
+                            <i class="fas fa-terminal"></i>
+                            <span>Paleta de Comandos</span>
+                        </button>
+                        <button class="action-card" data-shortcut="ctrl+p">
+                            <i class="fas fa-file-code"></i>
+                            <span>Abrir Arquivo</span>
+                        </button>
+                        <button class="action-card" data-shortcut="ctrl+grave">
+                            <i class="fas fa-terminal"></i>
+                            <span>Terminal</span>
+                        </button>
+                        <button class="action-card" data-shortcut="ctrl+s">
+                            <i class="fas fa-save"></i>
+                            <span>Salvar</span>
+                        </button>
+                        <button class="action-card" data-shortcut="ctrl+z">
+                            <i class="fas fa-undo"></i>
+                            <span>Desfazer</span>
+                        </button>
+                        <button class="action-card" data-shortcut="ctrl+shift+z">
+                            <i class="fas fa-redo"></i>
+                            <span>Refazer</span>
+                        </button>
+                        <button class="action-card" data-shortcut="ctrl+b">
+                            <i class="fas fa-columns"></i>
+                            <span>Sidebar</span>
+                        </button>
+                        <button class="action-card" data-shortcut="ctrl+f">
+                            <i class="fas fa-search"></i>
+                            <span>Buscar</span>
+                        </button>
+                        <button class="action-card" data-shortcut="ctrl+c">
+                            <i class="fas fa-copy"></i>
+                            <span>Copiar</span>
+                        </button>
+                        <button class="action-card" data-shortcut="ctrl+v">
+                            <i class="fas fa-paste"></i>
+                            <span>Colar</span>
+                        </button>
+                        <button class="action-card" data-shortcut="escape">
+                            <i class="fas fa-xmark"></i>
+                            <span>Escape</span>
+                        </button>
                     </div>
                 </div>
-                <div class="panel-section">
-                    <h4>Escala</h4>
-                    <input type="range" id="scale-slider" min="25" max="200" value="100">
-                    <span id="scale-value">100%</span>
-                </div>
-                <div class="panel-section">
-                    <h4>Modo de Toque</h4>
-                    <div class="touch-mode-options">
-                        <label>
-                            <input type="radio" name="touch-mode" value="touchpad" checked>
-                            Touchpad (arrastar = mover mouse)
-                        </label>
-                        <label>
-                            <input type="radio" name="touch-mode" value="direct">
-                            Direto (toque = clique na posição)
-                        </label>
-                    </div>
-                </div>
-                <div class="panel-section">
-                    <h4>Viewport</h4>
-                    <label class="toggle-label">
-                        <input type="checkbox" id="clip-viewport" checked>
-                        Clip to viewport
-                    </label>
-                    <label class="toggle-label">
-                        <input type="checkbox" id="drag-viewport">
-                        Drag viewport
-                    </label>
-                </div>
-                <div class="panel-section">
-                    <h4>Conexão</h4>
-                    <div class="connection-details">
-                        <p><i class="fas fa-server"></i> <span id="info-host">-</span></p>
-                        <p><i class="fas fa-plug"></i> <span id="info-port">-</span></p>
-                        <p><i class="fas fa-signal"></i> <span id="info-status">Desconectado</span></p>
-                    </div>
-                </div>
-                <div class="panel-section">
-                    <h4>Sobre</h4>
-                    <p class="about-text">
-                        Kiro Mobile Bridge v1.1<br>
-                        Interface responsiva para Kiro IDE<br>
-                        <a href="https://github.com/VagnerMafort/interface-kiro" target="_blank">
-                            <i class="fab fa-github"></i> GitHub
-                        </a>
-                    </p>
-                </div>
             </div>
+
+            <!-- Bottom Bar (floating) -->
+            <div class="bottom-bar">
+                <button id="btn-keyboard" class="fab" aria-label="Teclado">
+                    <i class="fas fa-keyboard"></i>
+                </button>
+                <button id="btn-mic" class="fab mic" aria-label="Microfone">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button id="btn-tts" class="fab tts" aria-label="Ouvir">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+            </div>
+            <input type="text" id="hidden-keyboard-input" autocomplete="off" autocorrect="off"
+                   autocapitalize="off" spellcheck="false">
         </div>
-        <div id="panel-overlay" class="hidden"></div>
     </div>
 
-    <!-- noVNC -->
+    <!-- Voice Panel -->
+    <div id="voice-panel" class="bottom-sheet hidden">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+            <span id="voice-status-text">Toque para falar</span>
+            <button id="btn-close-voice" class="icon-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="voice-area">
+            <div id="voice-indicator" class="voice-circle">
+                <i class="fas fa-microphone"></i>
+            </div>
+        </div>
+        <div id="voice-transcript" class="transcript-box">
+            <p id="transcript-text" class="placeholder">Sua fala aparecerá aqui...</p>
+        </div>
+        <div class="sheet-actions">
+            <button id="btn-voice-send" class="btn-pill primary" disabled>
+                <i class="fas fa-paper-plane"></i> Enviar
+            </button>
+            <button id="btn-voice-clear" class="btn-pill">
+                <i class="fas fa-eraser"></i> Limpar
+            </button>
+        </div>
+        <div class="sheet-options">
+            <label><input type="checkbox" id="voice-auto-send" checked> Enviar automaticamente</label>
+            <select id="voice-lang">
+                <option value="pt-BR" selected>Português</option>
+                <option value="en-US">English</option>
+                <option value="es-ES">Español</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- TTS Panel -->
+    <div id="tts-panel" class="bottom-sheet hidden">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+            <span>Texto para Áudio</span>
+            <button id="btn-close-tts" class="icon-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <textarea id="tts-text" class="tts-input" placeholder="Cole o texto que deseja ouvir..."></textarea>
+        <div class="sheet-actions">
+            <button id="btn-tts-play" class="btn-pill primary"><i class="fas fa-play"></i> Ouvir</button>
+            <button id="btn-tts-stop" class="btn-pill" disabled><i class="fas fa-stop"></i> Parar</button>
+            <button id="btn-tts-paste" class="btn-pill"><i class="fas fa-clipboard"></i> Colar</button>
+        </div>
+    </div>
+
     <script type="module">
-        // Importa noVNC do servidor local (websockify serve os arquivos do noVNC)
         import RFB from '/static/vendor/noVNC/core/rfb.js';
         window.RFB = RFB;
     </script>
