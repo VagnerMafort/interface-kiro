@@ -23,7 +23,7 @@ VNC_HOST = os.getenv("VNC_HOST", "localhost")
 VNC_PORT = int(os.getenv("VNC_PORT", "5900"))
 NOVNC_PORT = int(os.getenv("NOVNC_PORT", "6080"))
 WEBSOCKIFY_PORT = int(os.getenv("WEBSOCKIFY_PORT", "6081"))
-APP_PORT = int(os.getenv("APP_PORT", "8080"))
+APP_PORT = int(os.getenv("APP_PORT", "9090"))
 VNC_PASSWORD = os.getenv("VNC_PASSWORD", "kiro123")
 
 novnc_process = None
