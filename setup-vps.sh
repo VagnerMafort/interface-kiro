@@ -65,12 +65,11 @@ export XDG_SESSION_TYPE=x11
 export DISPLAY=:1
 
 # Inicia dbus
-if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
-    eval $(dbus-launch --sh-syntax)
-fi
+eval $(dbus-launch --sh-syntax --exit-with-session)
+export DBUS_SESSION_BUS_ADDRESS
 
-# Inicia XFCE
-startxfce4 &
+# Inicia XFCE e espera
+exec startxfce4
 XSTARTUP
 chmod +x ~/.vnc/xstartup
 
