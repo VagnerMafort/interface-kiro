@@ -4,6 +4,7 @@
  */
 
 import RFB from "https://cdn.jsdelivr.net/npm/@novnc/novnc@1.4.0/lib/rfb.js";
+import { VoiceModule } from "./voice.js";
 
 // ─── Estado ──────────────────────────────────────
 const state = {
@@ -14,6 +15,8 @@ const state = {
     quality: "auto",
     scale: 100,
     focusArea: "editor",
+    voice: null,
+    lastTranscript: "",
     // Regiões do Kiro (aproximadas, ajustáveis)
     focusRegions: {
         editor:   { x: 0.20, y: 0.06, w: 0.55, h: 0.65 },
@@ -384,11 +387,28 @@ function setupEventListeners() {
         btn.addEventListener("click", () => {
             if (btn.dataset.shortcut) {
                 sendKeyCombo(btn.dataset.shortcut);
-                // Volta pro desktop pra ver o resultado
                 switchView("desktop");
             }
         });
     });
+
+    // Chat voice buttons
+    const btnChatMic = $("#btn-chat-mic");
+    if (btnChatMic) {
+        btnChatMic.addEventListener("click", () => {
+            $("#voice-panel").classList.remove("hidden");
+            $("#tts-panel").classList.add("hidden");
+            if (state.voice) state.voice.startListening();
+        });
+    }
+    const btnChatTts = $("#btn-chat-tts");
+    if (btnChatTts) {
+        btnChatTts.addEventListener("click", () => {
+            $("#tts-panel").classList.remove("hidden");
+            $("#voice-panel").classList.add("hidden");
+            if (state.voice) state.voice.stopListening();
+        });
+    }
 
     // Mouse mode
     $("#btn-mouse-mode").addEventListener("click", toggleMouseMode);
@@ -434,12 +454,190 @@ function setupEventListeners() {
     // Teclado virtual
     setupKeyboardInput();
 
+    // Voz (STT + TTS)
+    setupVoice();
+
     // Prevenir zoom do browser
     document.addEventListener("gesturestart", (e) => e.preventDefault());
     document.addEventListener("dblclick", (e) => { if (state.connected) e.preventDefault(); });
 
     // Focus updates
     startFocusUpdates();
+}
+
+// ─── Voz (STT + TTS) ─────────────────────────────
+
+function setupVoice() {
+    state.voice = new VoiceModule();
+
+    const btnMic = $("#btn-mic");
+    const btnTts = $("#btn-tts");
+    const voicePanel = $("#voice-panel");
+    const ttsPanel = $("#tts-panel");
+    const indicator = $("#voice-indicator");
+    const transcriptText = $("#transcript-text");
+    const btnVoiceSend = $("#btn-voice-send");
+    const btnVoiceClear = $("#btn-voice-clear");
+    const voiceAutoSend = $("#voice-auto-send");
+    const voiceLang = $("#voice-lang");
+
+    // Callback de transcrição
+    state.voice.onTranscript = (text, isFinal) => {
+        if (isFinal) {
+            state.lastTranscript = text;
+            transcriptText.textContent = text;
+            transcriptText.className = "";
+            btnVoiceSend.disabled = false;
+
+            // Auto-enviar se habilitado
+            if (voiceAutoSend.checked) {
+                sendTranscriptToKiro(text);
+            }
+        } else {
+            transcriptText.textContent = text;
+            transcriptText.className = "transcript-interim";
+        }
+    };
+
+    // Callback de estado
+    state.voice.onStateChange = (voiceState) => {
+        switch (voiceState) {
+            case "listening":
+                btnMic.classList.add("listening");
+                indicator.classList.add("active");
+                $("#voice-status-text").textContent = "Ouvindo... fale agora";
+                break;
+            case "speaking":
+                btnTts.classList.add("speaking");
+                $("#btn-tts-stop").disabled = false;
+                $("#btn-tts-play").disabled = true;
+                break;
+            case "idle":
+                btnMic.classList.remove("listening");
+                indicator.classList.remove("active");
+                btnTts.classList.remove("speaking");
+                $("#voice-status-text").textContent = "Toque no microfone para falar";
+                $("#btn-tts-stop").disabled = true;
+                $("#btn-tts-play").disabled = false;
+                break;
+            case "denied":
+                $("#voice-status-text").textContent = "Permissão de microfone negada";
+                btnMic.classList.remove("listening");
+                break;
+            case "no-speech":
+                $("#voice-status-text").textContent = "Nenhuma fala detectada. Tente novamente.";
+                btnMic.classList.remove("listening");
+                indicator.classList.remove("active");
+                break;
+            case "unsupported":
+                $("#voice-status-text").textContent = "Navegador não suporta reconhecimento de voz";
+                break;
+            case "error":
+                $("#voice-status-text").textContent = "Erro no reconhecimento. Tente novamente.";
+                btnMic.classList.remove("listening");
+                indicator.classList.remove("active");
+                break;
+        }
+    };
+
+    // Botão microfone — abre painel e começa a ouvir
+    btnMic.addEventListener("click", () => {
+        if (voicePanel.classList.contains("hidden")) {
+            voicePanel.classList.remove("hidden");
+            ttsPanel.classList.add("hidden");
+            state.voice.startListening();
+        } else {
+            state.voice.toggleListening();
+        }
+    });
+
+    // Fechar painel de voz
+    $("#btn-close-voice").addEventListener("click", () => {
+        voicePanel.classList.add("hidden");
+        state.voice.stopListening();
+    });
+
+    // Enviar transcrição manualmente
+    btnVoiceSend.addEventListener("click", () => {
+        if (state.lastTranscript) {
+            sendTranscriptToKiro(state.lastTranscript);
+        }
+    });
+
+    // Limpar transcrição
+    btnVoiceClear.addEventListener("click", () => {
+        state.lastTranscript = "";
+        transcriptText.textContent = "Sua fala aparecerá aqui...";
+        transcriptText.className = "transcript-placeholder";
+        btnVoiceSend.disabled = true;
+    });
+
+    // Idioma
+    voiceLang.addEventListener("change", (e) => {
+        state.voice.setLanguage(e.target.value);
+    });
+
+    // Indicador clicável para toggle
+    indicator.addEventListener("click", () => {
+        state.voice.toggleListening();
+    });
+
+    // ─── TTS ─────────────────────────────────────
+
+    btnTts.addEventListener("click", () => {
+        if (ttsPanel.classList.contains("hidden")) {
+            ttsPanel.classList.remove("hidden");
+            voicePanel.classList.add("hidden");
+            state.voice.stopListening();
+        } else {
+            ttsPanel.classList.add("hidden");
+        }
+    });
+
+    $("#btn-close-tts").addEventListener("click", () => {
+        ttsPanel.classList.add("hidden");
+        state.voice.stopSpeaking();
+    });
+
+    $("#btn-tts-play").addEventListener("click", () => {
+        const text = $("#tts-text").value.trim();
+        if (text) {
+            state.voice.speak(text, voiceLang.value);
+        }
+    });
+
+    $("#btn-tts-stop").addEventListener("click", () => {
+        state.voice.stopSpeaking();
+    });
+
+    $("#btn-tts-paste").addEventListener("click", async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            $("#tts-text").value = text;
+        } catch (e) {
+            // Fallback
+            $("#tts-text").focus();
+        }
+    });
+}
+
+function sendTranscriptToKiro(text) {
+    if (!state.rfb || !state.connected || !text) return;
+
+    // Envia cada caractere como keypress pro VNC
+    for (const char of text) {
+        const code = char.charCodeAt(0);
+        state.rfb.sendKey(code, null, true);
+        state.rfb.sendKey(code, null, false);
+    }
+
+    // Feedback visual
+    const transcriptText = $("#transcript-text");
+    transcriptText.textContent = `✓ Enviado: "${text}"`;
+    transcriptText.style.color = "var(--green)";
+    setTimeout(() => {
+        transcriptText.style.color = "";
+    }, 2000);
 }
 
 // ─── Init ────────────────────────────────────────

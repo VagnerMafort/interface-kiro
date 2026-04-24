@@ -129,6 +129,13 @@
                 </div>
                 <div class="quick-actions">
                     <h4>Ações Rápidas</h4>
+                    <button class="quick-action-btn" id="btn-chat-mic">
+                        <i class="fas fa-microphone"></i> Falar para o Kiro (voz → texto)
+                    </button>
+                    <button class="quick-action-btn" id="btn-chat-tts">
+                        <i class="fas fa-volume-up"></i> Ouvir resposta (texto → voz)
+                    </button>
+                    <div class="quick-actions-divider"></div>
                     <button class="quick-action-btn" data-shortcut="ctrl+shift+p">
                         <i class="fas fa-terminal"></i> Command Palette
                     </button>
@@ -219,6 +226,76 @@
         <button id="btn-fullscreen" class="floating-btn fullscreen-btn" aria-label="Tela cheia">
             <i class="fas fa-expand"></i>
         </button>
+
+        <!-- Botão Microfone (STT) -->
+        <button id="btn-mic" class="floating-btn mic-btn" aria-label="Microfone">
+            <i class="fas fa-microphone"></i>
+        </button>
+
+        <!-- Painel de Voz -->
+        <div id="voice-panel" class="voice-panel hidden">
+            <div class="voice-panel-header">
+                <span id="voice-status-text">Toque no microfone para falar</span>
+                <button id="btn-close-voice" aria-label="Fechar"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="voice-visualizer">
+                <div id="voice-indicator" class="voice-indicator">
+                    <div class="pulse-ring"></div>
+                    <div class="mic-circle">
+                        <i class="fas fa-microphone"></i>
+                    </div>
+                </div>
+            </div>
+            <div id="voice-transcript" class="voice-transcript">
+                <p id="transcript-text" class="transcript-placeholder">Sua fala aparecerá aqui...</p>
+            </div>
+            <div class="voice-actions">
+                <button id="btn-voice-send" class="voice-action-btn send-btn" disabled>
+                    <i class="fas fa-paper-plane"></i> Enviar como texto
+                </button>
+                <button id="btn-voice-clear" class="voice-action-btn clear-btn">
+                    <i class="fas fa-eraser"></i> Limpar
+                </button>
+            </div>
+            <div class="voice-settings">
+                <label class="voice-setting">
+                    <input type="checkbox" id="voice-auto-send" checked>
+                    Enviar automaticamente ao parar de falar
+                </label>
+                <label class="voice-setting">
+                    <select id="voice-lang">
+                        <option value="pt-BR" selected>Português (BR)</option>
+                        <option value="en-US">English (US)</option>
+                        <option value="es-ES">Español</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+
+        <!-- Botão TTS (ler resposta) -->
+        <button id="btn-tts" class="floating-btn tts-btn" aria-label="Ler em voz alta">
+            <i class="fas fa-volume-up"></i>
+        </button>
+
+        <!-- Painel TTS -->
+        <div id="tts-panel" class="tts-panel hidden">
+            <div class="tts-panel-header">
+                <span>Texto para Áudio</span>
+                <button id="btn-close-tts" aria-label="Fechar"><i class="fas fa-times"></i></button>
+            </div>
+            <textarea id="tts-text" class="tts-textarea" placeholder="Cole ou digite o texto que deseja ouvir..."></textarea>
+            <div class="tts-actions">
+                <button id="btn-tts-play" class="voice-action-btn send-btn">
+                    <i class="fas fa-play"></i> Ouvir
+                </button>
+                <button id="btn-tts-stop" class="voice-action-btn clear-btn" disabled>
+                    <i class="fas fa-stop"></i> Parar
+                </button>
+                <button id="btn-tts-paste" class="voice-action-btn">
+                    <i class="fas fa-clipboard"></i> Colar
+                </button>
+            </div>
+        </div>
 
         <!-- Painel Lateral -->
         <div id="side-panel" class="hidden">

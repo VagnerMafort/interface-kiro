@@ -587,3 +587,263 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
     .fullscreen-btn { bottom: calc(20px + env(safe-area-inset-bottom)); }
     #shortcut-bar { bottom: calc(80px + env(safe-area-inset-bottom)); }
 }
+
+/* ─── Voice / Mic Button ──────────────────────── */
+
+.mic-btn {
+    bottom: 80px;
+    right: 20px;
+    background: var(--purple);
+    color: #fff;
+}
+.mic-btn.listening {
+    background: var(--red);
+    animation: pulse-mic 1.5s ease-in-out infinite;
+}
+@keyframes pulse-mic {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(243, 139, 168, 0.5); }
+    50% { box-shadow: 0 0 0 14px rgba(243, 139, 168, 0); }
+}
+
+.tts-btn {
+    bottom: 140px;
+    right: 20px;
+    background: var(--bg-surface);
+    color: var(--yellow);
+    border: 1px solid var(--border);
+}
+.tts-btn.speaking {
+    background: var(--yellow);
+    color: var(--bg-primary);
+    animation: pulse-mic 1.5s ease-in-out infinite;
+}
+
+/* ─── Voice Panel (STT) ──────────────────────── */
+
+.voice-panel {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    z-index: 110;
+    padding: 16px;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.5);
+    transition: transform 0.3s ease;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+.voice-panel.hidden {
+    transform: translateY(100%);
+    pointer-events: none;
+}
+
+.voice-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+.voice-panel-header span {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+.voice-panel-header button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.voice-visualizer {
+    display: flex;
+    justify-content: center;
+    padding: 20px 0;
+}
+
+.voice-indicator {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mic-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--bg-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: var(--text-muted);
+    z-index: 2;
+    transition: all 0.3s;
+}
+
+.voice-indicator.active .mic-circle {
+    background: var(--red);
+    color: #fff;
+}
+
+.pulse-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 3px solid var(--red);
+    opacity: 0;
+    z-index: 1;
+}
+.voice-indicator.active .pulse-ring {
+    animation: pulse-ring 1.5s ease-out infinite;
+}
+@keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(1.6); opacity: 0; }
+}
+
+.voice-transcript {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    min-height: 60px;
+    max-height: 120px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+}
+.voice-transcript p {
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    word-wrap: break-word;
+}
+.transcript-placeholder {
+    color: var(--text-muted) !important;
+    font-style: italic;
+}
+.transcript-interim {
+    color: var(--text-muted) !important;
+}
+
+.voice-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.voice-action-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.15s;
+}
+.voice-action-btn:active { transform: scale(0.97); }
+.voice-action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.send-btn {
+    background: var(--accent);
+    color: var(--bg-primary);
+    border-color: var(--accent);
+}
+.send-btn:hover { background: var(--accent-hover); }
+
+.clear-btn {
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+}
+
+.voice-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+}
+.voice-setting {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+.voice-setting select {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+/* ─── TTS Panel ───────────────────────────────── */
+
+.tts-panel {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    z-index: 110;
+    padding: 16px;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.5);
+    transition: transform 0.3s ease;
+}
+.tts-panel.hidden {
+    transform: translateY(100%);
+    pointer-events: none;
+}
+
+.tts-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+.tts-panel-header span { font-size: 14px; color: var(--text-secondary); }
+.tts-panel-header button { background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 4px 8px; }
+
+.tts-textarea {
+    width: 100%;
+    min-height: 100px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    color: var(--text-primary);
+    font-size: 14px;
+    resize: vertical;
+    outline: none;
+    margin-bottom: 12px;
+    font-family: inherit;
+}
+.tts-textarea:focus { border-color: var(--accent); }
+
+.tts-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* ─── Quick Actions Divider ───────────────────── */
+
+.quick-actions-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px 0;
+}
+
+.quick-action-btn .fa-microphone { color: var(--purple); }
+.quick-action-btn .fa-volume-up { color: var(--yellow); }
