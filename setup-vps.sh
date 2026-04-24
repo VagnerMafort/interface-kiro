@@ -98,7 +98,7 @@ apt install -y -qq \
     libgbm1 \
     libpango-1.0-0 \
     libcairo2 \
-    libasound2 \
+    libasound2t64 \
     libxshmfence1 \
     2>/dev/null
 
