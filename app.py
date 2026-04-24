@@ -20,7 +20,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
 # Configurações
 VNC_HOST = os.getenv("VNC_HOST", "localhost")
-VNC_PORT = int(os.getenv("VNC_PORT", "5900"))
+VNC_PORT = int(os.getenv("VNC_PORT", "5901"))
 NOVNC_PORT = int(os.getenv("NOVNC_PORT", "6080"))
 WEBSOCKIFY_PORT = int(os.getenv("WEBSOCKIFY_PORT", "6081"))
 APP_PORT = int(os.getenv("APP_PORT", "9090"))
