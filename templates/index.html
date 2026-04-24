@@ -4,259 +4,158 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#212121">
     <title>Kiro Mobile</title>
-    <link rel="manifest" href="/static/manifest.json">
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
-    <!-- ═══ Tela de Conexão ═══ -->
-    <div id="connect-screen" class="screen active">
-        <div class="connect-container">
-            <div class="connect-logo">
-                <div class="logo-circle">
-                    <i class="fas fa-bolt"></i>
-                </div>
+
+    <!-- ═══ Tela de Login ═══ -->
+    <div id="screen-connect" class="screen active">
+        <div class="login-page">
+            <div class="login-logo">
+                <div class="logo-mark"><i class="fas fa-bolt"></i></div>
                 <h1>Kiro Mobile</h1>
-                <p>Acesse seu workspace de qualquer lugar</p>
             </div>
-            <div class="connect-form">
-                <div class="form-field">
-                    <input type="text" id="vnc-host" value="{{ vnc_host }}" placeholder="Host (ex: 144.91.105.101)">
+            <div class="login-form">
+                <input type="text" id="vnc-host" value="{{ vnc_host }}" placeholder="Host do servidor">
+                <div class="login-row">
+                    <input type="number" id="vnc-port" value="{{ websockify_port }}" placeholder="Porta">
+                    <input type="password" id="vnc-password" value="{{ vnc_password }}" placeholder="Senha">
                 </div>
-                <div class="form-row">
-                    <div class="form-field">
-                        <input type="number" id="vnc-port" value="{{ websockify_port }}" placeholder="Porta">
-                    </div>
-                    <div class="form-field">
-                        <input type="password" id="vnc-password" value="{{ vnc_password }}" placeholder="Senha">
-                    </div>
-                </div>
-                <button id="btn-connect" class="btn-connect">
-                    Conectar <i class="fas fa-arrow-right"></i>
-                </button>
+                <button id="btn-connect" class="btn-green">Conectar</button>
             </div>
-            <div id="connect-status" class="connect-status"></div>
+            <p id="connect-status" class="login-status"></p>
         </div>
     </div>
 
-    <!-- ═══ Tela Principal ═══ -->
-    <div id="main-screen" class="screen">
+    <!-- ═══ Tela Principal (estilo ChatGPT) ═══ -->
+    <div id="screen-main" class="screen">
+
+        <!-- VNC oculto (roda por trás) -->
+        <div id="vnc-hidden"><div id="vnc-screen"></div></div>
+
         <!-- Sidebar -->
-        <div id="sidebar" class="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-brand">
-                    <div class="brand-icon"><i class="fas fa-bolt"></i></div>
-                    <span>Kiro Mobile</span>
-                </div>
-                <button id="btn-close-sidebar" class="icon-btn"><i class="fas fa-times"></i></button>
+        <aside id="sidebar" class="sidebar">
+            <div class="sb-header">
+                <span class="sb-brand"><i class="fas fa-bolt"></i> Kiro</span>
+                <button id="btn-sb-close" class="btn-icon"><i class="fas fa-xmark"></i></button>
             </div>
+            <nav class="sb-nav">
+                <button class="sb-link active" data-tab="chat"><i class="fas fa-message"></i> Chat</button>
+                <button class="sb-link" data-tab="actions"><i class="fas fa-grid"></i> Ações Rápidas</button>
+                <button class="sb-link" data-tab="files"><i class="fas fa-folder"></i> Projetos</button>
+                <button class="sb-link" data-tab="desktop"><i class="fas fa-desktop"></i> Ver Desktop</button>
+            </nav>
+            <div class="sb-footer">
+                <button id="btn-theme" class="sb-link"><i class="fas fa-moon" id="theme-icon"></i> <span id="theme-label">Modo Claro</span></button>
+                <button id="btn-disconnect" class="sb-link sb-danger"><i class="fas fa-arrow-right-from-bracket"></i> Desconectar</button>
+            </div>
+        </aside>
+        <div id="sb-overlay" class="overlay hidden"></div>
 
-            <div class="sidebar-section">
-                <div class="sidebar-label">Visualização</div>
-                <button class="sidebar-item active" data-view="desktop">
-                    <i class="fas fa-desktop"></i> Desktop Remoto
-                </button>
-                <button class="sidebar-item" data-view="focus">
-                    <i class="fas fa-crop-simple"></i> Modo Foco
-                </button>
-                <button class="sidebar-item" data-view="actions">
-                    <i class="fas fa-bolt"></i> Ações Rápidas
-                </button>
-            </div>
+        <!-- Content Area -->
+        <main class="content">
+            <!-- Top bar -->
+            <header class="topbar">
+                <button id="btn-menu" class="btn-icon"><i class="fas fa-bars"></i></button>
+                <span class="topbar-title" id="topbar-title">Kiro</span>
+                <button id="btn-fullscreen" class="btn-icon"><i class="fas fa-expand"></i></button>
+            </header>
 
-            <div class="sidebar-section">
-                <div class="sidebar-label">Projetos</div>
-                <div class="project-item">
-                    <i class="fas fa-folder"></i> interface-kiro
+            <!-- Tab: Chat -->
+            <section id="tab-chat" class="tab active">
+                <div class="chat-area" id="chat-area">
+                    <div class="chat-welcome">
+                        <div class="welcome-icon"><i class="fas fa-bolt"></i></div>
+                        <h2>Kiro Mobile</h2>
+                        <p>Envie comandos por texto ou voz para o seu workspace</p>
+                    </div>
+                    <div id="chat-messages"></div>
                 </div>
-                <div class="project-item">
-                    <i class="fas fa-folder"></i> veo3-tool
+                <div class="chat-input-area">
+                    <div class="input-bar">
+                        <button id="btn-mic-chat" class="btn-icon mic-btn"><i class="fas fa-microphone"></i></button>
+                        <input type="text" id="chat-input" placeholder="Digite um comando..." autocomplete="off">
+                        <button id="btn-send" class="btn-icon send-btn"><i class="fas fa-arrow-up"></i></button>
+                    </div>
+                    <div class="input-hint">Texto é enviado como digitação para o Kiro no desktop</div>
                 </div>
-            </div>
+            </section>
 
-            <div class="sidebar-section">
-                <div class="sidebar-label">Qualidade</div>
-                <div class="quality-row">
-                    <button class="chip active" data-quality="auto">Auto</button>
-                    <button class="chip" data-quality="high">Alta</button>
-                    <button class="chip" data-quality="medium">Média</button>
-                    <button class="chip" data-quality="low">Baixa</button>
+            <!-- Tab: Ações Rápidas -->
+            <section id="tab-actions" class="tab">
+                <div class="tab-scroll">
+                    <div class="section-title">Atalhos do Kiro</div>
+                    <div class="grid-actions">
+                        <button class="action-btn" data-shortcut="ctrl+shift+i"><i class="fas fa-robot"></i><span>Chat AI</span></button>
+                        <button class="action-btn" data-shortcut="ctrl+shift+p"><i class="fas fa-terminal"></i><span>Comandos</span></button>
+                        <button class="action-btn" data-shortcut="ctrl+p"><i class="fas fa-file"></i><span>Abrir Arquivo</span></button>
+                        <button class="action-btn" data-shortcut="ctrl+grave"><i class="fas fa-terminal"></i><span>Terminal</span></button>
+                        <button class="action-btn" data-shortcut="ctrl+s"><i class="fas fa-floppy-disk"></i><span>Salvar</span></button>
+                        <button class="action-btn" data-shortcut="ctrl+z"><i class="fas fa-rotate-left"></i><span>Desfazer</span></button>
+                        <button class="action-btn" data-shortcut="ctrl+shift+z"><i class="fas fa-rotate-right"></i><span>Refazer</span></button>
+                        <button class="action-btn" data-shortcut="ctrl+b"><i class="fas fa-sidebar"></i><span>Sidebar</span></button>
+                        <button class="action-btn" data-shortcut="ctrl+f"><i class="fas fa-magnifying-glass"></i><span>Buscar</span></button>
+                        <button class="action-btn" data-shortcut="ctrl+c"><i class="fas fa-copy"></i><span>Copiar</span></button>
+                        <button class="action-btn" data-shortcut="ctrl+v"><i class="fas fa-paste"></i><span>Colar</span></button>
+                        <button class="action-btn" data-shortcut="escape"><i class="fas fa-xmark"></i><span>Escape</span></button>
+                    </div>
+                    <div class="section-title" style="margin-top:24px">Voz</div>
+                    <div class="grid-actions cols-2">
+                        <button id="btn-voice-page" class="action-btn wide"><i class="fas fa-microphone"></i><span>Falar para o Kiro</span></button>
+                        <button id="btn-tts-page" class="action-btn wide"><i class="fas fa-volume-high"></i><span>Ouvir texto</span></button>
+                    </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="sidebar-footer">
-                <button id="btn-theme" class="sidebar-item">
-                    <i class="fas fa-moon"></i> <span id="theme-label">Modo Claro</span>
-                </button>
-                <button id="btn-disconnect-sidebar" class="sidebar-item danger">
-                    <i class="fas fa-power-off"></i> Desconectar
-                </button>
-            </div>
+            <!-- Tab: Projetos -->
+            <section id="tab-files" class="tab">
+                <div class="tab-scroll">
+                    <div class="section-title">Seus Projetos</div>
+                    <div class="file-list">
+                        <div class="file-item"><i class="fas fa-folder-open"></i><div><strong>interface-kiro</strong><small>/root/interface-kiro</small></div></div>
+                        <div class="file-item"><i class="fas fa-folder-open"></i><div><strong>veo3-tool</strong><small>/root/veo3-tool</small></div></div>
+                    </div>
+                    <div class="section-title" style="margin-top:24px">Abrir no Kiro</div>
+                    <p class="hint-text">Use Ações Rápidas > "Abrir Arquivo" (Ctrl+P) ou "Comandos" (Ctrl+Shift+P) para navegar nos projetos pelo Kiro.</p>
+                </div>
+            </section>
+
+            <!-- Tab: Desktop (quando quiser ver) -->
+            <section id="tab-desktop" class="tab">
+                <div id="desktop-view"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Bottom Sheet: Voz -->
+    <div id="voice-sheet" class="bsheet hidden">
+        <div class="bsheet-bar"></div>
+        <div class="bsheet-head"><span id="voice-status">Toque para falar</span><button id="btn-close-voice" class="btn-icon"><i class="fas fa-xmark"></i></button></div>
+        <div class="voice-center"><div id="voice-dot" class="voice-dot"><i class="fas fa-microphone"></i></div></div>
+        <div class="transcript-box"><p id="transcript-text" class="muted">Sua fala aparecerá aqui...</p></div>
+        <div class="bsheet-btns">
+            <button id="btn-voice-send" class="pill green" disabled><i class="fas fa-paper-plane"></i> Enviar</button>
+            <button id="btn-voice-clear" class="pill"><i class="fas fa-eraser"></i> Limpar</button>
         </div>
-        <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Top Bar -->
-            <div class="topbar">
-                <button id="btn-sidebar" class="icon-btn"><i class="fas fa-bars"></i></button>
-                <span class="topbar-title" id="topbar-title">Desktop Remoto</span>
-                <div class="topbar-actions">
-                    <button id="btn-fullscreen-top" class="icon-btn"><i class="fas fa-expand"></i></button>
-                </div>
-            </div>
-
-            <!-- View: Desktop -->
-            <div id="view-desktop" class="view active">
-                <div id="vnc-container">
-                    <div id="vnc-screen"></div>
-                    <div id="loading-overlay">
-                        <div class="loader"></div>
-                        <p>Conectando...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- View: Foco -->
-            <div id="view-focus" class="view">
-                <div class="focus-tabs">
-                    <button class="focus-tab active" data-area="editor"><i class="fas fa-code"></i> Editor</button>
-                    <button class="focus-tab" data-area="explorer"><i class="fas fa-folder"></i> Arquivos</button>
-                    <button class="focus-tab" data-area="terminal"><i class="fas fa-terminal"></i> Terminal</button>
-                    <button class="focus-tab" data-area="chat"><i class="fas fa-robot"></i> Kiro AI</button>
-                </div>
-                <div id="focus-viewport">
-                    <canvas id="focus-canvas"></canvas>
-                </div>
-            </div>
-
-            <!-- View: Ações Rápidas -->
-            <div id="view-actions" class="view">
-                <div class="actions-container">
-                    <div class="actions-header">
-                        <div class="actions-icon"><i class="fas fa-bolt"></i></div>
-                        <h2>Ações Rápidas</h2>
-                        <p>Envie comandos para o Kiro</p>
-                    </div>
-                    <div class="actions-grid">
-                        <button class="action-card" data-shortcut="ctrl+shift+i">
-                            <i class="fas fa-robot"></i>
-                            <span>Chat Kiro</span>
-                        </button>
-                        <button class="action-card" data-shortcut="ctrl+shift+p">
-                            <i class="fas fa-terminal"></i>
-                            <span>Paleta de Comandos</span>
-                        </button>
-                        <button class="action-card" data-shortcut="ctrl+p">
-                            <i class="fas fa-file-code"></i>
-                            <span>Abrir Arquivo</span>
-                        </button>
-                        <button class="action-card" data-shortcut="ctrl+grave">
-                            <i class="fas fa-terminal"></i>
-                            <span>Terminal</span>
-                        </button>
-                        <button class="action-card" data-shortcut="ctrl+s">
-                            <i class="fas fa-save"></i>
-                            <span>Salvar</span>
-                        </button>
-                        <button class="action-card" data-shortcut="ctrl+z">
-                            <i class="fas fa-undo"></i>
-                            <span>Desfazer</span>
-                        </button>
-                        <button class="action-card" data-shortcut="ctrl+shift+z">
-                            <i class="fas fa-redo"></i>
-                            <span>Refazer</span>
-                        </button>
-                        <button class="action-card" data-shortcut="ctrl+b">
-                            <i class="fas fa-columns"></i>
-                            <span>Sidebar</span>
-                        </button>
-                        <button class="action-card" data-shortcut="ctrl+f">
-                            <i class="fas fa-search"></i>
-                            <span>Buscar</span>
-                        </button>
-                        <button class="action-card" data-shortcut="ctrl+c">
-                            <i class="fas fa-copy"></i>
-                            <span>Copiar</span>
-                        </button>
-                        <button class="action-card" data-shortcut="ctrl+v">
-                            <i class="fas fa-paste"></i>
-                            <span>Colar</span>
-                        </button>
-                        <button class="action-card" data-shortcut="escape">
-                            <i class="fas fa-xmark"></i>
-                            <span>Escape</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bottom Bar (floating) -->
-            <div class="bottom-bar">
-                <button id="btn-keyboard" class="fab" aria-label="Teclado">
-                    <i class="fas fa-keyboard"></i>
-                </button>
-                <button id="btn-mic" class="fab mic" aria-label="Microfone">
-                    <i class="fas fa-microphone"></i>
-                </button>
-                <button id="btn-tts" class="fab tts" aria-label="Ouvir">
-                    <i class="fas fa-volume-up"></i>
-                </button>
-            </div>
-            <input type="text" id="hidden-keyboard-input" autocomplete="off" autocorrect="off"
-                   autocapitalize="off" spellcheck="false">
+        <div class="bsheet-opts">
+            <label><input type="checkbox" id="voice-auto-send" checked> Auto-enviar</label>
+            <select id="voice-lang"><option value="pt-BR">Português</option><option value="en-US">English</option><option value="es-ES">Español</option></select>
         </div>
     </div>
 
-    <!-- Voice Panel -->
-    <div id="voice-panel" class="bottom-sheet hidden">
-        <div class="sheet-handle"></div>
-        <div class="sheet-header">
-            <span id="voice-status-text">Toque para falar</span>
-            <button id="btn-close-voice" class="icon-btn"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="voice-area">
-            <div id="voice-indicator" class="voice-circle">
-                <i class="fas fa-microphone"></i>
-            </div>
-        </div>
-        <div id="voice-transcript" class="transcript-box">
-            <p id="transcript-text" class="placeholder">Sua fala aparecerá aqui...</p>
-        </div>
-        <div class="sheet-actions">
-            <button id="btn-voice-send" class="btn-pill primary" disabled>
-                <i class="fas fa-paper-plane"></i> Enviar
-            </button>
-            <button id="btn-voice-clear" class="btn-pill">
-                <i class="fas fa-eraser"></i> Limpar
-            </button>
-        </div>
-        <div class="sheet-options">
-            <label><input type="checkbox" id="voice-auto-send" checked> Enviar automaticamente</label>
-            <select id="voice-lang">
-                <option value="pt-BR" selected>Português</option>
-                <option value="en-US">English</option>
-                <option value="es-ES">Español</option>
-            </select>
-        </div>
-    </div>
-
-    <!-- TTS Panel -->
-    <div id="tts-panel" class="bottom-sheet hidden">
-        <div class="sheet-handle"></div>
-        <div class="sheet-header">
-            <span>Texto para Áudio</span>
-            <button id="btn-close-tts" class="icon-btn"><i class="fas fa-times"></i></button>
-        </div>
-        <textarea id="tts-text" class="tts-input" placeholder="Cole o texto que deseja ouvir..."></textarea>
-        <div class="sheet-actions">
-            <button id="btn-tts-play" class="btn-pill primary"><i class="fas fa-play"></i> Ouvir</button>
-            <button id="btn-tts-stop" class="btn-pill" disabled><i class="fas fa-stop"></i> Parar</button>
-            <button id="btn-tts-paste" class="btn-pill"><i class="fas fa-clipboard"></i> Colar</button>
+    <!-- Bottom Sheet: TTS -->
+    <div id="tts-sheet" class="bsheet hidden">
+        <div class="bsheet-bar"></div>
+        <div class="bsheet-head"><span>Texto → Áudio</span><button id="btn-close-tts" class="btn-icon"><i class="fas fa-xmark"></i></button></div>
+        <textarea id="tts-text" class="tts-box" placeholder="Cole o texto aqui..."></textarea>
+        <div class="bsheet-btns">
+            <button id="btn-tts-play" class="pill green"><i class="fas fa-play"></i> Ouvir</button>
+            <button id="btn-tts-stop" class="pill" disabled><i class="fas fa-stop"></i> Parar</button>
+            <button id="btn-tts-paste" class="pill"><i class="fas fa-clipboard"></i> Colar</button>
         </div>
     </div>
 
@@ -264,117 +163,115 @@
         import RFB from '/static/vendor/noVNC/core/rfb.js';
         import { VoiceModule } from '/static/js/voice.js';
 
-        const state = {
-            rfb: null, connected: false, currentView: "desktop", quality: "auto",
-            voice: null, lastTranscript: "", focusArea: "editor",
-            focusRegions: {
-                editor: {x:0.20,y:0.06,w:0.55,h:0.65}, explorer: {x:0,y:0.06,w:0.20,h:0.94},
-                terminal: {x:0.20,y:0.71,w:0.80,h:0.29}, chat: {x:0.75,y:0.06,w:0.25,h:0.65},
-            },
-        };
-        const $ = s => document.querySelector(s);
-        const $$ = s => document.querySelectorAll(s);
+        const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+        const state={rfb:null,connected:false,voice:null,lastTranscript:"",currentTab:"chat"};
 
-        function showStatus(msg, type="") { const el=$("#connect-status"); el.textContent=msg; el.className=`connect-status ${type}`; }
-        function switchScreen(n) { $("#connect-screen").classList.toggle("active",n==="connect"); $("#main-screen").classList.toggle("active",n==="main"); }
-        function switchView(v) {
-            state.currentView=v;
-            $$(".sidebar-item[data-view]").forEach(i=>i.classList.toggle("active",i.dataset.view===v));
-            $$(".view").forEach(x=>x.classList.remove("active"));
-            $(`#view-${v}`).classList.add("active");
-            $("#topbar-title").textContent={desktop:"Desktop Remoto",focus:"Modo Foco",actions:"Ações Rápidas"}[v]||"";
-            closeSidebar();
-            if(v==="focus") updateFocusView();
-        }
-        function openSidebar(){$(".sidebar").classList.add("open");$("#sidebar-overlay").classList.remove("hidden");}
-        function closeSidebar(){$(".sidebar").classList.remove("open");$("#sidebar-overlay").classList.add("hidden");}
-
-        function connect() {
-            const host=$("#vnc-host").value.trim(), port=$("#vnc-port").value.trim(), password=$("#vnc-password").value;
-            if(!host||!port) return showStatus("Preencha host e porta","error");
-            showStatus("Conectando...","info");
-            $("#btn-connect").disabled=true;
+        // ── Conexão (VNC oculto) ──
+        function connect(){
+            const host=$("#vnc-host").value.trim(),port=$("#vnc-port").value.trim(),pw=$("#vnc-password").value;
+            if(!host||!port)return status("Preencha todos os campos","error");
+            status("Conectando...","info"); $("#btn-connect").disabled=true;
             const proto=location.protocol==="https:"?"wss":"ws";
-            try {
+            try{
                 $("#vnc-screen").innerHTML="";
-                state.rfb=new RFB($("#vnc-screen"),`${proto}://${host}:${port}`,{credentials:{password},wsProtocols:["binary"]});
-                state.rfb.viewOnly=false; state.rfb.scaleViewport=true; state.rfb.clipViewport=true;
-                state.rfb.resizeSession=false; state.rfb.showDotCursor=true;
-                state.rfb.qualityLevel=6; state.rfb.compressionLevel=2;
-                state.rfb.addEventListener("connect",()=>{
-                    state.connected=true; showStatus("Conectado!","success");
-                    switchScreen("main"); $("#loading-overlay").classList.add("hidden");
-                });
-                state.rfb.addEventListener("disconnect",(e)=>{
-                    state.connected=false;
-                    if(!e.detail.clean) showStatus("Conexão perdida","error");
-                    switchScreen("connect"); $("#btn-connect").disabled=false;
-                });
-                state.rfb.addEventListener("credentialsrequired",()=>{
-                    if(state.rfb&&password) state.rfb.sendCredentials({password});
-                });
-            } catch(err) { showStatus(`Erro: ${err.message}`,"error"); $("#btn-connect").disabled=false; }
+                state.rfb=new RFB($("#vnc-screen"),`${proto}://${host}:${port}`,{credentials:{password:pw},wsProtocols:["binary"]});
+                state.rfb.viewOnly=false;state.rfb.scaleViewport=true;state.rfb.clipViewport=true;
+                state.rfb.qualityLevel=6;state.rfb.compressionLevel=2;
+                state.rfb.addEventListener("connect",()=>{state.connected=true;status("Conectado!","ok");switchScreen("main");addMsg("system","Conectado ao desktop. Kiro pronto para uso.");});
+                state.rfb.addEventListener("disconnect",e=>{state.connected=false;if(!e.detail.clean)status("Conexão perdida","error");switchScreen("connect");$("#btn-connect").disabled=false;});
+                state.rfb.addEventListener("credentialsrequired",()=>{if(state.rfb&&pw)state.rfb.sendCredentials({password:pw});});
+            }catch(e){status("Erro: "+e.message,"error");$("#btn-connect").disabled=false;}
         }
         function disconnect(){if(state.rfb){state.rfb.disconnect();state.rfb=null;}state.connected=false;switchScreen("connect");}
+        function status(m,t=""){const e=$("#connect-status");e.textContent=m;e.className="login-status "+t;}
+        function switchScreen(n){$("#screen-connect").classList.toggle("active",n==="connect");$("#screen-main").classList.toggle("active",n==="main");}
 
-        const KEYMAP={ctrl:"ControlLeft",shift:"ShiftLeft",alt:"AltLeft",enter:"Enter",escape:"Escape",tab:"Tab",backspace:"Backspace",grave:"Backquote",space:"Space"};
-        const KEYSYM={ControlLeft:0xFFE3,ShiftLeft:0xFFE1,AltLeft:0xFFE9,Enter:0xFF0D,Escape:0xFF1B,Tab:0xFF09,Backspace:0xFF08,Delete:0xFFFF,Space:0x0020,Backquote:0x0060};
-        function sendKeys(str){if(!state.rfb||!state.connected)return;const keys=str.split("+").map(k=>KEYMAP[k.trim().toLowerCase()]||`Key${k.trim().toUpperCase()}`);keys.forEach(k=>state.rfb.sendKey(KEYSYM[k]||k.charCodeAt(3),k,true));[...keys].reverse().forEach(k=>state.rfb.sendKey(KEYSYM[k]||k.charCodeAt(3),k,false));}
-        function sendText(t){if(!state.rfb||!state.connected||!t)return;for(const c of t){const code=c.charCodeAt(0);state.rfb.sendKey(code,null,true);state.rfb.sendKey(code,null,false);}}
-        function applyQuality(l){if(!state.rfb)return;state.quality=l;const s={high:{q:9,c:0},medium:{q:5,c:4},low:{q:1,c:9},auto:{q:6,c:2}}[l]||{q:6,c:2};state.rfb.qualityLevel=s.q;state.rfb.compressionLevel=s.c;}
-
-        function updateFocusView(){
-            if(!state.rfb||!state.connected)return;const canvas=$("#vnc-screen canvas");if(!canvas)return;
-            const r=state.focusRegions[state.focusArea];if(!r)return;const fc=$("#focus-canvas"),vp=$("#focus-viewport");
-            const srcX=Math.floor(canvas.width*r.x),srcY=Math.floor(canvas.height*r.y),srcW=Math.floor(canvas.width*r.w),srcH=Math.floor(canvas.height*r.h);
-            const scale=Math.min(vp.clientWidth/srcW,vp.clientHeight/srcH);
-            fc.width=Math.floor(srcW*scale);fc.height=Math.floor(srcH*scale);
-            const ctx=fc.getContext("2d");ctx.imageSmoothingEnabled=true;
-            try{ctx.drawImage(canvas,srcX,srcY,srcW,srcH,0,0,fc.width,fc.height);}catch(e){}
+        // ── Tabs ──
+        function switchTab(t){
+            state.currentTab=t;
+            $$(".sb-link[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
+            $$(".tab").forEach(x=>x.classList.remove("active"));
+            $(`#tab-${t}`).classList.add("active");
+            $("#topbar-title").textContent={chat:"Kiro",actions:"Ações Rápidas",files:"Projetos",desktop:"Desktop"}[t]||"Kiro";
+            closeSB();
+            // Mover canvas VNC para desktop tab quando visível
+            if(t==="desktop"){const dv=$("#desktop-view");const vs=$("#vnc-screen");if(vs.parentElement.id==="vnc-hidden"){dv.appendChild(vs);vs.style.cssText="width:100%;height:100%";}}
+            else{const vh=$("#vnc-hidden");const vs=$("#vnc-screen");if(vs.parentElement.id==="desktop-view"){vh.appendChild(vs);vs.style.cssText="";}}
         }
-        setInterval(()=>{if(state.currentView==="focus"&&state.connected)updateFocusView();},100);
 
-        function toggleTheme(){const h=document.documentElement,d=h.dataset.theme==="dark";h.dataset.theme=d?"light":"dark";$("#theme-label").textContent=d?"Modo Escuro":"Modo Claro";$("#btn-theme i").className=d?"fas fa-sun":"fas fa-moon";localStorage.setItem("kiro-theme",h.dataset.theme);}
-        function loadTheme(){const s=localStorage.getItem("kiro-theme");if(s){document.documentElement.dataset.theme=s;$("#theme-label").textContent=s==="dark"?"Modo Claro":"Modo Escuro";$("#btn-theme i").className=s==="dark"?"fas fa-moon":"fas fa-sun";}}
+        // ── Sidebar ──
+        function openSB(){$(".sidebar").classList.add("open");$("#sb-overlay").classList.remove("hidden");}
+        function closeSB(){$(".sidebar").classList.remove("open");$("#sb-overlay").classList.add("hidden");}
 
+        // ── Tema ──
+        function toggleTheme(){const d=document.documentElement,dk=d.dataset.theme==="dark";d.dataset.theme=dk?"light":"dark";$("#theme-label").textContent=dk?"Modo Escuro":"Modo Claro";$("#theme-icon").className=dk?"fas fa-sun":"fas fa-moon";localStorage.setItem("kiro-theme",d.dataset.theme);}
+        (function loadTheme(){const s=localStorage.getItem("kiro-theme");if(s){document.documentElement.dataset.theme=s;$("#theme-label").textContent=s==="dark"?"Modo Claro":"Modo Escuro";$("#theme-icon").className=s==="dark"?"fas fa-moon":"fas fa-sun";}})();
+
+        // ── Chat ──
+        function addMsg(type,text){
+            const area=$("#chat-messages");
+            const div=document.createElement("div");
+            div.className="chat-msg "+type;
+            div.innerHTML=type==="user"?`<div class="msg-bubble user-bubble">${esc(text)}</div>`:`<div class="msg-bubble sys-bubble"><i class="fas fa-bolt"></i> ${esc(text)}</div>`;
+            area.appendChild(div);
+            area.scrollTop=area.scrollHeight;
+            $("#chat-area").scrollTop=$("#chat-area").scrollHeight;
+        }
+        function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+        function sendChat(){
+            const input=$("#chat-input"),text=input.value.trim();
+            if(!text)return;
+            addMsg("user",text);
+            input.value="";
+            sendText(text);
+            // Envia Enter depois do texto
+            if(state.rfb&&state.connected){state.rfb.sendKey(0xFF0D,null,true);state.rfb.sendKey(0xFF0D,null,false);}
+            addMsg("system","Enviado para o Kiro ✓");
+        }
+
+        // ── Enviar teclas/texto ──
+        const KM={ctrl:"ControlLeft",shift:"ShiftLeft",alt:"AltLeft",enter:"Enter",escape:"Escape",tab:"Tab",backspace:"Backspace",grave:"Backquote",space:"Space"};
+        const KS={ControlLeft:0xFFE3,ShiftLeft:0xFFE1,AltLeft:0xFFE9,Enter:0xFF0D,Escape:0xFF1B,Tab:0xFF09,Backspace:0xFF08,Space:0x0020,Backquote:0x0060};
+        function sendKeys(s){if(!state.rfb||!state.connected)return;const k=s.split("+").map(x=>KM[x.trim().toLowerCase()]||`Key${x.trim().toUpperCase()}`);k.forEach(x=>state.rfb.sendKey(KS[x]||x.charCodeAt(3),x,true));[...k].reverse().forEach(x=>state.rfb.sendKey(KS[x]||x.charCodeAt(3),x,false));}
+        function sendText(t){if(!state.rfb||!state.connected||!t)return;for(const c of t){const code=c.charCodeAt(0);state.rfb.sendKey(code,null,true);state.rfb.sendKey(code,null,false);}}
+
+        // ── Voz ──
         function setupVoice(){
-            state.voice=new VoiceModule();const vp=$("#voice-panel"),tp=$("#tts-panel"),ind=$("#voice-indicator"),txt=$("#transcript-text"),btnS=$("#btn-voice-send");
-            state.voice.onTranscript=(text,isFinal)=>{if(isFinal){state.lastTranscript=text;txt.textContent=text;txt.className="";btnS.disabled=false;if($("#voice-auto-send").checked){sendText(text);txt.textContent=`✓ "${text}"`;txt.style.color="var(--accent)";setTimeout(()=>txt.style.color="",2000);}}else{txt.textContent=text;txt.className="interim";}};
-            state.voice.onStateChange=(s)=>{const mic=$("#btn-mic");if(s==="listening"){mic.classList.add("listening");ind.classList.add("active");$("#voice-status-text").textContent="Ouvindo...";}else{mic.classList.remove("listening");ind.classList.remove("active");$("#voice-status-text").textContent="Toque para falar";}};
-            $("#btn-mic").addEventListener("click",()=>{vp.classList.toggle("hidden");tp.classList.add("hidden");if(!vp.classList.contains("hidden"))state.voice.startListening();});
-            $("#btn-close-voice").addEventListener("click",()=>{vp.classList.add("hidden");state.voice.stopListening();});
-            ind.addEventListener("click",()=>state.voice.toggleListening());
-            btnS.addEventListener("click",()=>{if(state.lastTranscript)sendText(state.lastTranscript);});
-            $("#btn-voice-clear").addEventListener("click",()=>{state.lastTranscript="";txt.textContent="Sua fala aparecerá aqui...";txt.className="placeholder";btnS.disabled=true;});
-            $("#voice-lang").addEventListener("change",(e)=>state.voice.setLanguage(e.target.value));
-            $("#btn-tts").addEventListener("click",()=>{tp.classList.toggle("hidden");vp.classList.add("hidden");});
-            $("#btn-close-tts").addEventListener("click",()=>{tp.classList.add("hidden");state.voice.stopSpeaking();});
+            state.voice=new VoiceModule();
+            const vs=$("#voice-sheet"),ts=$("#tts-sheet"),dot=$("#voice-dot"),txt=$("#transcript-text"),btnS=$("#btn-voice-send");
+            state.voice.onTranscript=(text,fin)=>{if(fin){state.lastTranscript=text;txt.textContent=text;txt.className="";btnS.disabled=false;if($("#voice-auto-send").checked){sendText(text);if(state.rfb&&state.connected){state.rfb.sendKey(0xFF0D,null,true);state.rfb.sendKey(0xFF0D,null,false);}addMsg("user","🎤 "+text);addMsg("system","Enviado ✓");txt.textContent="✓ Enviado";txt.style.color="var(--green)";setTimeout(()=>txt.style.color="",2000);}}else{txt.textContent=text;txt.className="muted";}};
+            state.voice.onStateChange=s=>{const m=$("#btn-mic-chat");if(s==="listening"){m.classList.add("on");dot.classList.add("on");$("#voice-status").textContent="Ouvindo...";}else{m.classList.remove("on");dot.classList.remove("on");$("#voice-status").textContent="Toque para falar";}};
+            $("#btn-mic-chat").addEventListener("click",()=>{vs.classList.toggle("hidden");ts.classList.add("hidden");if(!vs.classList.contains("hidden"))state.voice.startListening();else state.voice.stopListening();});
+            $("#btn-close-voice").addEventListener("click",()=>{vs.classList.add("hidden");state.voice.stopListening();});
+            dot.addEventListener("click",()=>state.voice.toggleListening());
+            btnS.addEventListener("click",()=>{if(state.lastTranscript){sendText(state.lastTranscript);addMsg("user","🎤 "+state.lastTranscript);addMsg("system","Enviado ✓");}});
+            $("#btn-voice-clear").addEventListener("click",()=>{state.lastTranscript="";txt.textContent="Sua fala aparecerá aqui...";txt.className="muted";btnS.disabled=true;});
+            $("#voice-lang").addEventListener("change",e=>state.voice.setLanguage(e.target.value));
+            $("#btn-voice-page").addEventListener("click",()=>{vs.classList.remove("hidden");ts.classList.add("hidden");state.voice.startListening();});
+            $("#btn-tts-page").addEventListener("click",()=>{ts.classList.remove("hidden");vs.classList.add("hidden");});
+            $("#btn-tts").addEventListener("click",()=>{ts.classList.toggle("hidden");vs.classList.add("hidden");});
+            $("#btn-close-tts").addEventListener("click",()=>{ts.classList.add("hidden");state.voice.stopSpeaking();});
             $("#btn-tts-play").addEventListener("click",()=>{const t=$("#tts-text").value.trim();if(t)state.voice.speak(t);});
             $("#btn-tts-stop").addEventListener("click",()=>state.voice.stopSpeaking());
             $("#btn-tts-paste").addEventListener("click",async()=>{try{$("#tts-text").value=await navigator.clipboard.readText();}catch(e){$("#tts-text").focus();}});
         }
 
-        // Setup
-        $("#btn-connect").addEventListener("click", connect);
-        $("#vnc-password").addEventListener("keydown",(e)=>{if(e.key==="Enter")connect();});
-        $("#btn-disconnect-sidebar").addEventListener("click", disconnect);
-        $("#btn-sidebar").addEventListener("click", openSidebar);
-        $("#btn-close-sidebar").addEventListener("click", closeSidebar);
-        $("#sidebar-overlay").addEventListener("click", closeSidebar);
-        $$(".sidebar-item[data-view]").forEach(b=>b.addEventListener("click",()=>switchView(b.dataset.view)));
-        $$(".focus-tab").forEach(b=>b.addEventListener("click",()=>{$$(".focus-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");state.focusArea=b.dataset.area;updateFocusView();}));
-        $$(".action-card").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.shortcut){sendKeys(b.dataset.shortcut);switchView("desktop");}}));
-        $$(".chip[data-quality]").forEach(b=>b.addEventListener("click",()=>{$$(".chip[data-quality]").forEach(x=>x.classList.remove("active"));b.classList.add("active");applyQuality(b.dataset.quality);}));
-        $("#btn-theme").addEventListener("click", toggleTheme);
-        $("#btn-fullscreen-top").addEventListener("click",()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});else document.exitFullscreen().catch(()=>{});});
-        const kbInput=$("#hidden-keyboard-input");
-        $("#btn-keyboard").addEventListener("click",()=>{kbInput.focus();kbInput.click();});
-        kbInput.addEventListener("input",(e)=>{if(e.data)sendText(e.data);kbInput.value="";});
-        kbInput.addEventListener("keydown",(e)=>{if(["Backspace","Enter","Tab","Escape"].includes(e.key)){e.preventDefault();const sym=KEYSYM[e.code||e.key];if(sym&&state.rfb){state.rfb.sendKey(sym,e.code,true);state.rfb.sendKey(sym,e.code,false);}}});
-        loadTheme();
+        // ── Setup ──
+        $("#btn-connect").addEventListener("click",connect);
+        $("#vnc-password").addEventListener("keydown",e=>{if(e.key==="Enter")connect();});
+        $("#btn-disconnect").addEventListener("click",disconnect);
+        $("#btn-menu").addEventListener("click",openSB);
+        $("#btn-sb-close").addEventListener("click",closeSB);
+        $("#sb-overlay").addEventListener("click",closeSB);
+        $$(".sb-link[data-tab]").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
+        $$(".action-btn[data-shortcut]").forEach(b=>b.addEventListener("click",()=>{sendKeys(b.dataset.shortcut);addMsg("system","Atalho enviado: "+b.querySelector("span").textContent);switchTab("chat");}));
+        $("#btn-theme").addEventListener("click",toggleTheme);
+        $("#btn-fullscreen").addEventListener("click",()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});else document.exitFullscreen().catch(()=>{});});
+        $("#btn-send").addEventListener("click",sendChat);
+        $("#chat-input").addEventListener("keydown",e=>{if(e.key==="Enter")sendChat();});
         setupVoice();
-        document.addEventListener("gesturestart",(e)=>e.preventDefault());
-        console.log("[Kiro Mobile] v2.0 Ready");
+        console.log("[Kiro Mobile] v3.0");
     </script>
 </body>
 </html>
