@@ -134,7 +134,9 @@ echo "  -> Projetos clonados em /root"
 # ─── 5. Instalar Python e dependências ───────────
 echo ""
 echo "[5/7] Instalando Python e dependências da bridge..."
-apt install -y -qq python3-full python3-venv python3-pip git 2>/dev/null
+apt install -y -qq python3-full python3-venv python3-pip git \
+    tesseract-ocr tesseract-ocr-por tesseract-ocr-eng \
+    xdotool imagemagick 2>/dev/null
 
 # Setup do projeto
 BRIDGE_DIR="/opt/kiro-bridge"

@@ -224,10 +224,44 @@
             if(!text)return;
             addMsg("user",text);
             input.value="";
-            sendText(text);
-            // Envia Enter depois do texto
-            if(state.rfb&&state.connected){state.rfb.sendKey(0xFF0D,null,true);state.rfb.sendKey(0xFF0D,null,false);}
-            addMsg("system","Enviado para o Kiro ✓");
+            // Envia via API (xdotool) em vez de VNC
+            sendViaAPI(text);
+        }
+
+        async function sendViaAPI(text){
+            try{
+                // Digita o texto no desktop
+                await fetch("/api/type",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:text})});
+                // Envia Enter
+                await fetch("/api/key",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({keys:"Return"})});
+                addMsg("system","Enviado ✓ Aguardando resposta...");
+                // Espera e captura resposta via OCR
+                pollForResponse();
+            }catch(e){addMsg("system","Erro ao enviar: "+e.message);}
+        }
+
+        let lastOcrText="";
+        let pollCount=0;
+        function pollForResponse(){
+            pollCount=0;
+            const interval=setInterval(async()=>{
+                pollCount++;
+                if(pollCount>30){clearInterval(interval);return;} // max 30s
+                try{
+                    const res=await fetch("/api/ocr/chat");
+                    const data=await res.json();
+                    if(data.text && data.text!==lastOcrText && data.text.length>10){
+                        lastOcrText=data.text;
+                        // Pega só as últimas linhas (resposta mais recente)
+                        const lines=data.text.split("\n").filter(l=>l.trim());
+                        const recent=lines.slice(-8).join("\n");
+                        if(recent.trim()){
+                            addMsg("system",recent);
+                            clearInterval(interval);
+                        }
+                    }
+                }catch(e){}
+            },1000);
         }
 
         // ── Enviar teclas/texto ──
