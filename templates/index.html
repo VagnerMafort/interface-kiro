@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1e1e2e">
+    <title>Kiro Mobile Bridge</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <!-- Tela de Conexão -->
+    <div id="connect-screen" class="screen active">
+        <div class="connect-card">
+            <div class="logo">
+                <i class="fas fa-mobile-screen-button"></i>
+                <h1>Kiro Mobile Bridge</h1>
+                <p>Acesse o Kiro pelo celular</p>
+            </div>
+            <div class="connect-form">
+                <div class="input-group">
+                    <label>Host VNC</label>
+                    <input type="text" id="vnc-host" value="{{ vnc_host }}" placeholder="localhost">
+                </div>
+                <div class="input-group">
+                    <label>Porta Websockify</label>
+                    <input type="number" id="vnc-port" value="{{ websockify_port }}" placeholder="6081">
+                </div>
+                <div class="input-group">
+                    <label>Senha VNC</label>
+                    <input type="password" id="vnc-password" value="{{ vnc_password }}" placeholder="Senha">
+                </div>
+                <button id="btn-connect" class="btn-primary">
+                    <i class="fas fa-plug"></i> Conectar
+                </button>
+            </div>
+            <div id="connect-status" class="status-msg"></div>
+        </div>
+    </div>
+
+    <!-- Tela Principal - Desktop Remoto -->
+    <div id="main-screen" class="screen">
+        <!-- Top Bar -->
+        <div id="top-bar">
+            <button id="btn-menu" class="bar-btn" aria-label="Menu">
+                <i class="fas fa-bars"></i>
+            </button>
+            <span id="connection-info">Kiro Mobile Bridge</span>
+            <div class="top-bar-right">
+                <button id="btn-fullscreen" class="bar-btn" aria-label="Tela cheia">
+                    <i class="fas fa-expand"></i>
+                </button>
+                <button id="btn-disconnect" class="bar-btn" aria-label="Desconectar">
+                    <i class="fas fa-power-off"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Canvas VNC -->
+        <div id="vnc-container">
+            <div id="vnc-screen"></div>
+            <div id="loading-overlay">
+                <div class="spinner"></div>
+                <p>Conectando ao desktop...</p>
+            </div>
+        </div>
+
+        <!-- Toolbar Flutuante de Atalhos -->
+        <div id="shortcut-bar" class="collapsed">
+            <button id="btn-toggle-shortcuts" class="toggle-btn" aria-label="Atalhos">
+                <i class="fas fa-keyboard"></i>
+            </button>
+            <div class="shortcuts-content">
+                <button class="shortcut-btn" data-keys="ctrl+s" title="Salvar">
+                    <i class="fas fa-save"></i>
+                </button>
+                <button class="shortcut-btn" data-keys="ctrl+z" title="Desfazer">
+                    <i class="fas fa-undo"></i>
+                </button>
+                <button class="shortcut-btn" data-keys="ctrl+shift+z" title="Refazer">
+                    <i class="fas fa-redo"></i>
+                </button>
+                <button class="shortcut-btn" data-keys="ctrl+c" title="Copiar">
+                    <i class="fas fa-copy"></i>
+                </button>
+                <button class="shortcut-btn" data-keys="ctrl+v" title="Colar">
+                    <i class="fas fa-paste"></i>
+                </button>
+                <button class="shortcut-btn" data-keys="ctrl+x" title="Recortar">
+                    <i class="fas fa-scissors"></i>
+                </button>
+                <button class="shortcut-btn" data-keys="ctrl+f" title="Buscar">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="shortcut-btn" data-keys="ctrl+shift+p" title="Command Palette">
+                    <i class="fas fa-terminal"></i>
+                </button>
+                <button class="shortcut-btn" data-keys="ctrl+p" title="Quick Open">
+                    <i class="fas fa-file-code"></i>
+                </button>
+                <button class="shortcut-btn" data-keys="ctrl+b" title="Toggle Sidebar">
+                    <i class="fas fa-columns"></i>
+                </button>
+                <button class="shortcut-btn" data-keys="ctrl+grave" title="Terminal">
+                    <i class="fas fa-terminal"></i>
+                </button>
+                <button class="shortcut-btn" data-keys="escape" title="Escape">
+                    Esc
+                </button>
+            </div>
+        </div>
+
+        <!-- Teclado Virtual Toggle -->
+        <button id="btn-keyboard" class="floating-btn keyboard-btn" aria-label="Teclado">
+            <i class="fas fa-keyboard"></i>
+        </button>
+        <input type="text" id="hidden-keyboard-input" autocomplete="off" autocorrect="off" 
+               autocapitalize="off" spellcheck="false">
+
+        <!-- Mouse Mode Toggle -->
+        <button id="btn-mouse-mode" class="floating-btn mouse-btn" aria-label="Modo mouse">
+            <i class="fas fa-mouse-pointer"></i>
+        </button>
+
+        <!-- Painel Lateral -->
+        <div id="side-panel" class="hidden">
+            <div class="panel-header">
+                <h3>Configurações</h3>
+                <button id="btn-close-panel" aria-label="Fechar"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="panel-body">
+                <div class="panel-section">
+                    <h4>Qualidade</h4>
+                    <div class="quality-options">
+                        <button class="quality-btn active" data-quality="auto">Auto</button>
+                        <button class="quality-btn" data-quality="high">Alta</button>
+                        <button class="quality-btn" data-quality="medium">Média</button>
+                        <button class="quality-btn" data-quality="low">Baixa</button>
+                    </div>
+                </div>
+                <div class="panel-section">
+                    <h4>Escala</h4>
+                    <input type="range" id="scale-slider" min="25" max="200" value="100">
+                    <span id="scale-value">100%</span>
+                </div>
+                <div class="panel-section">
+                    <h4>Modo de Toque</h4>
+                    <div class="touch-mode-options">
+                        <label>
+                            <input type="radio" name="touch-mode" value="touchpad" checked>
+                            Touchpad (arrastar = mover mouse)
+                        </label>
+                        <label>
+                            <input type="radio" name="touch-mode" value="direct">
+                            Direto (toque = clique na posição)
+                        </label>
+                    </div>
+                </div>
+                <div class="panel-section">
+                    <h4>Viewport</h4>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="clip-viewport" checked>
+                        Clip to viewport
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="drag-viewport">
+                        Drag viewport
+                    </label>
+                </div>
+                <div class="panel-section">
+                    <h4>Sobre</h4>
+                    <p class="about-text">Kiro Mobile Bridge v1.0<br>Interface responsiva para Kiro IDE</p>
+                </div>
+            </div>
+        </div>
+        <div id="panel-overlay" class="hidden"></div>
+    </div>
+
+    <!-- noVNC -->
+    <script src="https://cdn.jsdelivr.net/npm/@novnc/novnc@1.4.0/lib/rfb.js" type="module" crossorigin></script>
+    <script src="/static/js/bridge.js" type="module"></script>
+</body>
+</html>
