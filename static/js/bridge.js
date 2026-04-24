@@ -1,6 +1,6 @@
 /**
- * Kiro Mobile Bridge - Lógica de ponte Desktop ↔ Mobile
- * Usa noVNC (RFB) para conectar ao desktop via WebSocket.
+ * Kiro Mobile Bridge v1.1 - Ponte Desktop ↔ Mobile
+ * Interface com 3 modos: Desktop, Foco e Chat
  */
 
 import RFB from "https://cdn.jsdelivr.net/npm/@novnc/novnc@1.4.0/lib/rfb.js";
@@ -9,13 +9,21 @@ import RFB from "https://cdn.jsdelivr.net/npm/@novnc/novnc@1.4.0/lib/rfb.js";
 const state = {
     rfb: null,
     connected: false,
-    touchMode: "touchpad",  // "touchpad" ou "direct"
-    mouseMode: false,
+    currentView: "desktop",
+    touchMode: "touchpad",
     quality: "auto",
     scale: 100,
+    focusArea: "editor",
+    // Regiões do Kiro (aproximadas, ajustáveis)
+    focusRegions: {
+        editor:   { x: 0.20, y: 0.06, w: 0.55, h: 0.65 },
+        explorer: { x: 0.00, y: 0.06, w: 0.20, h: 0.94 },
+        terminal: { x: 0.20, y: 0.71, w: 0.80, h: 0.29 },
+        chat:     { x: 0.75, y: 0.06, w: 0.25, h: 0.65 },
+    },
 };
 
-// ─── Elementos DOM ───────────────────────────────
+// ─── DOM Helpers ─────────────────────────────────
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
@@ -25,13 +33,17 @@ const els = {
     vncScreen: $("#vnc-screen"),
     loadingOverlay: $("#loading-overlay"),
     connectStatus: $("#connect-status"),
-    connectionInfo: $("#connection-info"),
     hiddenInput: $("#hidden-keyboard-input"),
     sidePanel: $("#side-panel"),
     panelOverlay: $("#panel-overlay"),
     shortcutBar: $("#shortcut-bar"),
     scaleSlider: $("#scale-slider"),
     scaleValue: $("#scale-value"),
+    focusCanvas: $("#focus-canvas"),
+    focusViewport: $("#focus-viewport"),
+    infoHost: $("#info-host"),
+    infoPort: $("#info-port"),
+    infoStatus: $("#info-status"),
 };
 
 // ─── Conexão VNC ─────────────────────────────────
@@ -53,15 +65,13 @@ function connect() {
     const url = `${protocol}://${host}:${port}`;
 
     try {
-        // Limpa canvas anterior
         els.vncScreen.innerHTML = "";
 
         state.rfb = new RFB(els.vncScreen, url, {
-            credentials: { password: password },
+            credentials: { password },
             wsProtocols: ["binary"],
         });
 
-        // Configurações do RFB
         state.rfb.viewOnly = false;
         state.rfb.scaleViewport = true;
         state.rfb.clipViewport = true;
@@ -70,11 +80,14 @@ function connect() {
         state.rfb.qualityLevel = 6;
         state.rfb.compressionLevel = 2;
 
-        // Eventos
         state.rfb.addEventListener("connect", onConnect);
         state.rfb.addEventListener("disconnect", onDisconnect);
         state.rfb.addEventListener("credentialsrequired", onCredentials);
         state.rfb.addEventListener("desktopname", onDesktopName);
+
+        // Atualiza info no painel
+        els.infoHost.textContent = host;
+        els.infoPort.textContent = port;
 
     } catch (err) {
         showStatus(`Erro: ${err.message}`, "error");
@@ -88,12 +101,14 @@ function disconnect() {
         state.rfb = null;
     }
     state.connected = false;
+    els.infoStatus.textContent = "Desconectado";
     switchScreen("connect");
 }
 
 function onConnect() {
     state.connected = true;
     showStatus("Conectado!", "success");
+    els.infoStatus.textContent = "Conectado";
     switchScreen("main");
     els.loadingOverlay.classList.add("hidden");
     applyQuality(state.quality);
@@ -101,8 +116,8 @@ function onConnect() {
 
 function onDisconnect(e) {
     state.connected = false;
-    const clean = e.detail.clean;
-    if (!clean) {
+    els.infoStatus.textContent = "Desconectado";
+    if (!e.detail.clean) {
         showStatus("Conexão perdida. Verifique o servidor VNC.", "error");
     }
     switchScreen("connect");
@@ -117,14 +132,32 @@ function onCredentials() {
 }
 
 function onDesktopName(e) {
-    els.connectionInfo.textContent = e.detail.name || "Kiro Mobile Bridge";
+    const name = e.detail.name || "Kiro Desktop";
+    $(".view-tab[data-view='desktop'] span").textContent = name;
 }
 
-// ─── Telas ───────────────────────────────────────
+// ─── Telas e Views ───────────────────────────────
 
 function switchScreen(name) {
     els.connectScreen.classList.toggle("active", name === "connect");
     els.mainScreen.classList.toggle("active", name === "main");
+}
+
+function switchView(view) {
+    state.currentView = view;
+    $$(".view-tab").forEach(t => t.classList.toggle("active", t.dataset.view === view));
+    $$(".view-panel").forEach(p => p.classList.remove("active"));
+    $(`#view-${view}`).classList.add("active");
+
+    // Mostra/esconde botões flutuantes conforme a view
+    const showFloating = view === "desktop" || view === "focus";
+    $$("#shortcut-bar, #btn-keyboard, #btn-mouse-mode, #btn-fullscreen").forEach(el => {
+        el.style.display = showFloating ? "" : "none";
+    });
+
+    if (view === "focus") {
+        updateFocusView();
+    }
 }
 
 function showStatus(msg, type = "") {
@@ -132,20 +165,81 @@ function showStatus(msg, type = "") {
     els.connectStatus.className = `status-msg ${type}`;
 }
 
+// ─── Modo Foco ───────────────────────────────────
+
+function updateFocusView() {
+    if (!state.rfb || !state.connected) return;
+
+    const canvas = els.vncScreen.querySelector("canvas");
+    if (!canvas) return;
+
+    const region = state.focusRegions[state.focusArea];
+    if (!region) return;
+
+    const srcX = Math.floor(canvas.width * region.x);
+    const srcY = Math.floor(canvas.height * region.y);
+    const srcW = Math.floor(canvas.width * region.w);
+    const srcH = Math.floor(canvas.height * region.h);
+
+    const focusCanvas = els.focusCanvas;
+    const viewport = els.focusViewport;
+    const vpW = viewport.clientWidth;
+    const vpH = viewport.clientHeight;
+
+    // Escala para preencher o viewport
+    const scaleX = vpW / srcW;
+    const scaleY = vpH / srcH;
+    const scale = Math.min(scaleX, scaleY);
+
+    focusCanvas.width = Math.floor(srcW * scale);
+    focusCanvas.height = Math.floor(srcH * scale);
+
+    const ctx = focusCanvas.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+
+    try {
+        ctx.drawImage(canvas, srcX, srcY, srcW, srcH, 0, 0, focusCanvas.width, focusCanvas.height);
+    } catch (e) {
+        // Canvas pode não estar pronto
+    }
+}
+
+// Atualiza o foco periodicamente quando ativo
+let focusInterval = null;
+function startFocusUpdates() {
+    stopFocusUpdates();
+    focusInterval = setInterval(() => {
+        if (state.currentView === "focus" && state.connected) {
+            updateFocusView();
+        }
+    }, 100); // ~10fps
+}
+function stopFocusUpdates() {
+    if (focusInterval) {
+        clearInterval(focusInterval);
+        focusInterval = null;
+    }
+}
+
 // ─── Atalhos de Teclado ──────────────────────────
 
 const KEY_MAP = {
-    "ctrl": "ControlLeft",
-    "shift": "ShiftLeft",
-    "alt": "AltLeft",
-    "meta": "MetaLeft",
-    "enter": "Enter",
-    "escape": "Escape",
-    "tab": "Tab",
-    "backspace": "Backspace",
-    "delete": "Delete",
-    "grave": "Backquote",
-    "space": "Space",
+    ctrl: "ControlLeft", shift: "ShiftLeft", alt: "AltLeft",
+    meta: "MetaLeft", enter: "Enter", escape: "Escape",
+    tab: "Tab", backspace: "Backspace", delete: "Delete",
+    grave: "Backquote", space: "Space",
+};
+
+const KEYSYM_MAP = {
+    ControlLeft: 0xFFE3, ControlRight: 0xFFE4,
+    ShiftLeft: 0xFFE1, ShiftRight: 0xFFE2,
+    AltLeft: 0xFFE9, AltRight: 0xFFEA,
+    MetaLeft: 0xFFE7, MetaRight: 0xFFE8,
+    Enter: 0xFF0D, Escape: 0xFF1B,
+    Tab: 0xFF09, Backspace: 0xFF08,
+    Delete: 0xFFFF, Space: 0x0020,
+    Backquote: 0x0060,
 };
 
 function sendKeyCombo(keysStr) {
@@ -158,62 +252,37 @@ function sendKeyCombo(keysStr) {
         return k;
     });
 
-    // Key down em ordem
-    xkeys.forEach(k => {
-        state.rfb.sendKey(keysymFromName(k), k, true);
-    });
-
-    // Key up em ordem reversa
-    [...xkeys].reverse().forEach(k => {
-        state.rfb.sendKey(keysymFromName(k), k, false);
-    });
+    xkeys.forEach(k => state.rfb.sendKey(keysymFromName(k), k, true));
+    [...xkeys].reverse().forEach(k => state.rfb.sendKey(keysymFromName(k), k, false));
 }
 
 function keysymFromName(name) {
-    const map = {
-        "ControlLeft": 0xFFE3, "ControlRight": 0xFFE4,
-        "ShiftLeft": 0xFFE1, "ShiftRight": 0xFFE2,
-        "AltLeft": 0xFFE9, "AltRight": 0xFFEA,
-        "MetaLeft": 0xFFE7, "MetaRight": 0xFFE8,
-        "Enter": 0xFF0D, "Escape": 0xFF1B,
-        "Tab": 0xFF09, "Backspace": 0xFF08,
-        "Delete": 0xFFFF, "Space": 0x0020,
-        "Backquote": 0x0060,
-        "ArrowUp": 0xFF52, "ArrowDown": 0xFF54,
-        "ArrowLeft": 0xFF51, "ArrowRight": 0xFF53,
-    };
-    if (map[name]) return map[name];
-    // Letras
-    if (name.startsWith("Key")) {
-        return name.charCodeAt(3);
-    }
+    if (KEYSYM_MAP[name]) return KEYSYM_MAP[name];
+    if (name.startsWith("Key")) return name.charCodeAt(3);
     return 0;
 }
 
 // ─── Teclado Virtual ─────────────────────────────
 
 function setupKeyboardInput() {
-    const input = els.hiddenInput;
-
     $("#btn-keyboard").addEventListener("click", () => {
-        input.focus();
-        input.click();
+        els.hiddenInput.focus();
+        els.hiddenInput.click();
     });
 
-    input.addEventListener("input", (e) => {
+    els.hiddenInput.addEventListener("input", (e) => {
         if (!state.rfb || !state.connected) return;
-        const data = e.data;
-        if (data) {
-            for (const char of data) {
+        if (e.data) {
+            for (const char of e.data) {
                 const code = char.charCodeAt(0);
                 state.rfb.sendKey(code, null, true);
                 state.rfb.sendKey(code, null, false);
             }
         }
-        input.value = "";
+        els.hiddenInput.value = "";
     });
 
-    input.addEventListener("keydown", (e) => {
+    els.hiddenInput.addEventListener("keydown", (e) => {
         if (!state.rfb || !state.connected) return;
         if (["Backspace", "Enter", "Tab", "Escape"].includes(e.key)) {
             e.preventDefault();
@@ -231,34 +300,24 @@ function setupKeyboardInput() {
 function applyQuality(level) {
     if (!state.rfb) return;
     state.quality = level;
-    switch (level) {
-        case "high":
-            state.rfb.qualityLevel = 9;
-            state.rfb.compressionLevel = 0;
-            break;
-        case "medium":
-            state.rfb.qualityLevel = 5;
-            state.rfb.compressionLevel = 4;
-            break;
-        case "low":
-            state.rfb.qualityLevel = 1;
-            state.rfb.compressionLevel = 9;
-            break;
-        default: // auto
-            state.rfb.qualityLevel = 6;
-            state.rfb.compressionLevel = 2;
-    }
+    const settings = {
+        high:   { q: 9, c: 0 },
+        medium: { q: 5, c: 4 },
+        low:    { q: 1, c: 9 },
+        auto:   { q: 6, c: 2 },
+    };
+    const s = settings[level] || settings.auto;
+    state.rfb.qualityLevel = s.q;
+    state.rfb.compressionLevel = s.c;
 }
 
-// ─── Painel Lateral ──────────────────────────────
+// ─── UI Controls ─────────────────────────────────
 
 function togglePanel(show) {
     const visible = show !== undefined ? show : els.sidePanel.classList.contains("hidden");
     els.sidePanel.classList.toggle("hidden", !visible);
     els.panelOverlay.classList.toggle("hidden", !visible);
 }
-
-// ─── Fullscreen ──────────────────────────────────
 
 function toggleFullscreen() {
     if (!document.fullscreenElement) {
@@ -268,19 +327,13 @@ function toggleFullscreen() {
     }
 }
 
-// ─── Mouse Mode ──────────────────────────────────
-
 function toggleMouseMode() {
     state.touchMode = state.touchMode === "touchpad" ? "direct" : "touchpad";
     $("#btn-mouse-mode").classList.toggle("direct-mode", state.touchMode === "direct");
-
     if (state.rfb) {
-        // Em modo direto, o toque vai direto na posição
         state.rfb.clipViewport = state.touchMode === "touchpad";
         state.rfb.dragViewport = state.touchMode === "touchpad";
     }
-
-    // Atualiza radio no painel
     const radio = $(`input[name="touch-mode"][value="${state.touchMode}"]`);
     if (radio) radio.checked = true;
 }
@@ -288,14 +341,25 @@ function toggleMouseMode() {
 // ─── Event Listeners ─────────────────────────────
 
 function setupEventListeners() {
-    // Conectar
+    // Conexão
     $("#btn-connect").addEventListener("click", connect);
-    $("#vnc-password").addEventListener("keydown", (e) => {
-        if (e.key === "Enter") connect();
+    $("#vnc-password").addEventListener("keydown", (e) => { if (e.key === "Enter") connect(); });
+    $("#btn-disconnect").addEventListener("click", disconnect);
+
+    // View tabs
+    $$(".view-tab").forEach(tab => {
+        tab.addEventListener("click", () => switchView(tab.dataset.view));
     });
 
-    // Desconectar
-    $("#btn-disconnect").addEventListener("click", disconnect);
+    // Focus area buttons
+    $$(".focus-area-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            $$(".focus-area-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            state.focusArea = btn.dataset.area;
+            updateFocusView();
+        });
+    });
 
     // Menu / Painel
     $("#btn-menu").addEventListener("click", () => togglePanel());
@@ -305,15 +369,24 @@ function setupEventListeners() {
     // Fullscreen
     $("#btn-fullscreen").addEventListener("click", toggleFullscreen);
 
-    // Atalhos
+    // Shortcuts
     $("#btn-toggle-shortcuts").addEventListener("click", () => {
         els.shortcutBar.classList.toggle("collapsed");
     });
-
     $$(".shortcut-btn").forEach(btn => {
         btn.addEventListener("click", () => {
-            const keys = btn.dataset.keys;
-            if (keys) sendKeyCombo(keys);
+            if (btn.dataset.keys) sendKeyCombo(btn.dataset.keys);
+        });
+    });
+
+    // Quick actions (chat view)
+    $$(".quick-action-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            if (btn.dataset.shortcut) {
+                sendKeyCombo(btn.dataset.shortcut);
+                // Volta pro desktop pra ver o resultado
+                switchView("desktop");
+            }
         });
     });
 
@@ -342,7 +415,7 @@ function setupEventListeners() {
         }
     });
 
-    // Viewport options
+    // Viewport
     $("#clip-viewport").addEventListener("change", (e) => {
         if (state.rfb) state.rfb.clipViewport = e.target.checked;
     });
@@ -361,16 +434,16 @@ function setupEventListeners() {
     // Teclado virtual
     setupKeyboardInput();
 
-    // Prevenir zoom do browser no mobile
+    // Prevenir zoom do browser
     document.addEventListener("gesturestart", (e) => e.preventDefault());
-    document.addEventListener("dblclick", (e) => {
-        if (state.connected) e.preventDefault();
-    });
+    document.addEventListener("dblclick", (e) => { if (state.connected) e.preventDefault(); });
+
+    // Focus updates
+    startFocusUpdates();
 }
 
 // ─── Init ────────────────────────────────────────
-
 document.addEventListener("DOMContentLoaded", () => {
     setupEventListeners();
-    console.log("[Kiro Mobile Bridge] Pronto!");
+    console.log("[Kiro Mobile Bridge] v1.1 Pronto!");
 });

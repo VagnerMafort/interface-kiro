@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   Kiro Mobile Bridge - CSS Responsivo
+   Kiro Mobile Bridge - CSS Responsivo v1.1
    ═══════════════════════════════════════════════════ */
 
 :root {
@@ -15,11 +15,12 @@
     --green: #a6e3a1;
     --red: #f38ba8;
     --yellow: #f9e2af;
+    --purple: #cba6f7;
     --border: #45475a;
     --radius: 12px;
     --radius-sm: 8px;
     --shadow: 0 4px 24px rgba(0,0,0,0.4);
-    --topbar-height: 44px;
+    --topbar-height: 48px;
 }
 
 * {
@@ -38,16 +39,8 @@ html, body {
     touch-action: none;
 }
 
-/* ─── Screens ─────────────────────────────────── */
-
-.screen {
-    display: none;
-    width: 100%;
-    height: 100%;
-}
-.screen.active {
-    display: flex;
-}
+.screen { display: none; width: 100%; height: 100%; }
+.screen.active { display: flex; }
 
 /* ─── Connect Screen ──────────────────────────── */
 
@@ -55,7 +48,7 @@ html, body {
     align-items: center;
     justify-content: center;
     padding: 20px;
-    background: linear-gradient(135deg, var(--bg-primary), var(--bg-secondary));
+    background: linear-gradient(135deg, var(--bg-primary) 0%, #1a1a2e 50%, var(--bg-secondary) 100%);
 }
 
 .connect-card {
@@ -65,43 +58,34 @@ html, body {
     border-radius: var(--radius);
     padding: 32px 24px;
     box-shadow: var(--shadow);
+    border: 1px solid var(--border);
 }
 
-.logo {
-    text-align: center;
-    margin-bottom: 28px;
-}
-.logo i {
-    font-size: 48px;
+.logo { text-align: center; margin-bottom: 28px; }
+.logo-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-size: 32px;
     color: var(--accent);
-    margin-bottom: 12px;
+    margin-bottom: 16px;
 }
-.logo h1 {
-    font-size: 22px;
-    font-weight: 600;
-}
-.logo p {
-    color: var(--text-secondary);
-    font-size: 14px;
-    margin-top: 4px;
-}
+.logo-arrows { font-size: 18px; color: var(--text-muted); }
+.logo h1 { font-size: 22px; font-weight: 600; }
+.logo p { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
 
-.connect-form {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
+.connect-form { display: flex; flex-direction: column; gap: 14px; }
+.input-group { display: flex; flex-direction: column; gap: 6px; }
 .input-group label {
     font-size: 13px;
     color: var(--text-secondary);
     font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
+.input-group label i { font-size: 12px; color: var(--text-muted); }
 .input-group input {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
@@ -112,9 +96,7 @@ html, body {
     outline: none;
     transition: border-color 0.2s;
 }
-.input-group input:focus {
-    border-color: var(--accent);
-}
+.input-group input:focus { border-color: var(--accent); }
 
 .btn-primary {
     background: var(--accent);
@@ -125,44 +107,49 @@ html, body {
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    margin-top: 4px;
 }
-.btn-primary:hover {
-    background: var(--accent-hover);
-}
-.btn-primary:active {
-    transform: scale(0.98);
-}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.status-msg {
-    text-align: center;
-    margin-top: 16px;
-    font-size: 13px;
-    min-height: 20px;
-}
+.status-msg { text-align: center; margin-top: 16px; font-size: 13px; min-height: 20px; }
 .status-msg.error { color: var(--red); }
 .status-msg.success { color: var(--green); }
 .status-msg.info { color: var(--yellow); }
+
+.connect-tips {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+.connect-tips p {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+.connect-tips i { color: var(--accent); margin-top: 2px; }
 
 /* ─── Top Bar ─────────────────────────────────── */
 
 #top-bar {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     height: var(--topbar-height);
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
-    padding: 0 8px;
+    padding: 0 6px;
     z-index: 100;
-    gap: 8px;
+    gap: 4px;
 }
 
 .bar-btn {
@@ -174,43 +161,68 @@ html, body {
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: all 0.15s;
+    flex-shrink: 0;
 }
 .bar-btn:hover { background: var(--bg-surface); color: var(--text-primary); }
 .bar-btn:active { transform: scale(0.92); }
-
-#connection-info {
-    flex: 1;
-    font-size: 13px;
-    color: var(--text-secondary);
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.top-bar-right {
-    display: flex;
-    gap: 2px;
-}
-
 #btn-disconnect { color: var(--red); }
 
-/* ─── VNC Container ───────────────────────────── */
+/* View Tabs */
+#view-tabs {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-sm);
+    padding: 3px;
+}
 
-#vnc-container {
+.view-tab {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+.view-tab i { font-size: 13px; }
+.view-tab span { display: none; }
+.view-tab.active {
+    background: var(--accent);
+    color: var(--bg-primary);
+}
+
+@media (min-width: 400px) {
+    .view-tab span { display: inline; }
+}
+
+/* ─── View Panels ─────────────────────────────── */
+
+.view-panel {
+    display: none;
     position: fixed;
     top: var(--topbar-height);
-    left: 0;
-    right: 0;
-    bottom: 0;
+    left: 0; right: 0; bottom: 0;
+}
+.view-panel.active { display: flex; flex-direction: column; }
+
+/* ─── Desktop View ────────────────────────────── */
+
+#vnc-container {
+    flex: 1;
     overflow: hidden;
     background: #000;
+    position: relative;
 }
 
-#vnc-screen {
-    width: 100%;
-    height: 100%;
-}
+#vnc-screen { width: 100%; height: 100%; }
 #vnc-screen canvas {
     width: 100% !important;
     height: 100% !important;
@@ -229,20 +241,156 @@ html, body {
     z-index: 50;
     transition: opacity 0.3s;
 }
-#loading-overlay.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
+#loading-overlay.hidden { opacity: 0; pointer-events: none; }
 
 .spinner {
-    width: 40px;
-    height: 40px;
+    width: 40px; height: 40px;
     border: 3px solid var(--bg-surface);
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Focus View ──────────────────────────────── */
+
+.focus-controls {
+    display: flex;
+    gap: 4px;
+    padding: 8px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.focus-area-btn {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.focus-area-btn.active {
+    background: var(--accent);
+    color: var(--bg-primary);
+    border-color: var(--accent);
+}
+.focus-area-btn i { font-size: 13px; }
+
+#focus-viewport {
+    flex: 1;
+    overflow: hidden;
+    background: #000;
+    position: relative;
+    touch-action: pan-x pan-y pinch-zoom;
+}
+
+#focus-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: top left;
+}
+
+.focus-hint {
+    padding: 6px 12px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+}
+.focus-hint i { margin-right: 4px; }
+
+/* ─── Chat View ───────────────────────────────── */
+
+#view-chat { background: var(--bg-primary); }
+
+.chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+}
+.chat-header-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 500;
+}
+.chat-header-info i { color: var(--purple); font-size: 18px; }
+
+.chat-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+.status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+}
+
+.chat-instructions {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.instruction-card {
+    background: var(--bg-surface);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+}
+.instruction-card i { color: var(--accent); font-size: 16px; margin-top: 2px; flex-shrink: 0; }
+.instruction-card p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+.instruction-card strong { color: var(--text-primary); }
+
+.quick-actions h4 {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.quick-action-btn {
+    width: 100%;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    transition: all 0.15s;
+    text-align: left;
+}
+.quick-action-btn:hover { background: var(--bg-overlay); border-color: var(--accent); }
+.quick-action-btn:active { transform: scale(0.98); }
+.quick-action-btn i { color: var(--accent); width: 20px; text-align: center; }
 
 /* ─── Shortcut Bar ────────────────────────────── */
 
@@ -258,9 +406,8 @@ html, body {
     gap: 8px;
 }
 
-#shortcut-bar .toggle-btn {
-    width: 48px;
-    height: 48px;
+.toggle-btn {
+    width: 48px; height: 48px;
     border-radius: 50%;
     background: var(--accent);
     color: var(--bg-primary);
@@ -273,7 +420,7 @@ html, body {
     align-items: center;
     justify-content: center;
 }
-#shortcut-bar .toggle-btn:active { transform: scale(0.9); }
+.toggle-btn:active { transform: scale(0.9); }
 
 .shortcuts-content {
     display: flex;
@@ -285,6 +432,7 @@ html, body {
     background: var(--bg-surface);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
+    border: 1px solid var(--border);
     transition: all 0.25s ease;
 }
 
@@ -298,8 +446,7 @@ html, body {
 }
 
 .shortcut-btn {
-    width: 44px;
-    height: 44px;
+    width: 44px; height: 44px;
     border-radius: var(--radius-sm);
     background: var(--bg-overlay);
     color: var(--text-primary);
@@ -318,11 +465,10 @@ html, body {
 
 .floating-btn {
     position: fixed;
-    width: 52px;
-    height: 52px;
+    width: 48px; height: 48px;
     border-radius: 50%;
     border: none;
-    font-size: 22px;
+    font-size: 20px;
     cursor: pointer;
     box-shadow: var(--shadow);
     z-index: 90;
@@ -333,42 +479,19 @@ html, body {
 }
 .floating-btn:active { transform: scale(0.9); }
 
-.keyboard-btn {
-    bottom: 20px;
-    right: 20px;
-    background: var(--green);
-    color: var(--bg-primary);
-}
+.keyboard-btn { bottom: 20px; right: 20px; background: var(--green); color: var(--bg-primary); }
+.mouse-btn { bottom: 20px; left: 20px; background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border); }
+.mouse-btn.direct-mode { background: var(--yellow); color: var(--bg-primary); }
+.fullscreen-btn { bottom: 20px; left: 80px; background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border); }
 
-.mouse-btn {
-    bottom: 20px;
-    left: 20px;
-    background: var(--bg-surface);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-}
-.mouse-btn.direct-mode {
-    background: var(--yellow);
-    color: var(--bg-primary);
-}
-
-#hidden-keyboard-input {
-    position: fixed;
-    top: -100px;
-    left: -100px;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-}
+#hidden-keyboard-input { position: fixed; top: -100px; left: -100px; width: 1px; height: 1px; opacity: 0; }
 
 /* ─── Side Panel ──────────────────────────────── */
 
 #side-panel {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 280px;
-    height: 100%;
+    top: 0; left: 0;
+    width: 280px; height: 100%;
     background: var(--bg-secondary);
     z-index: 200;
     transform: translateX(0);
@@ -376,9 +499,7 @@ html, body {
     overflow-y: auto;
     box-shadow: 4px 0 24px rgba(0,0,0,0.5);
 }
-#side-panel.hidden {
-    transform: translateX(-100%);
-}
+#side-panel.hidden { transform: translateX(-100%); }
 
 .panel-header {
     display: flex;
@@ -387,35 +508,21 @@ html, body {
     padding: 16px;
     border-bottom: 1px solid var(--border);
 }
-.panel-header h3 { font-size: 16px; }
-.panel-header button {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 18px;
-    cursor: pointer;
-    padding: 4px 8px;
-}
+.panel-header h3 { font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.panel-header h3 i { color: var(--text-muted); }
+.panel-header button { background: none; border: none; color: var(--text-secondary); font-size: 18px; cursor: pointer; padding: 4px 8px; }
 
-.panel-body {
-    padding: 16px;
-}
-
-.panel-section {
-    margin-bottom: 24px;
-}
+.panel-body { padding: 16px; }
+.panel-section { margin-bottom: 24px; }
 .panel-section h4 {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 10px;
 }
 
-.quality-options {
-    display: flex;
-    gap: 6px;
-}
+.quality-options { display: flex; gap: 6px; }
 .quality-btn {
     flex: 1;
     padding: 8px;
@@ -427,59 +534,24 @@ html, body {
     cursor: pointer;
     transition: all 0.15s;
 }
-.quality-btn.active {
-    background: var(--accent);
-    color: var(--bg-primary);
-    border-color: var(--accent);
-}
+.quality-btn.active { background: var(--accent); color: var(--bg-primary); border-color: var(--accent); }
 
-.touch-mode-options {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-.touch-mode-options label {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    font-size: 13px;
-    color: var(--text-secondary);
-    cursor: pointer;
-}
+.touch-mode-options { display: flex; flex-direction: column; gap: 10px; }
+.touch-mode-options label { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
 
-.toggle-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-bottom: 8px;
-    cursor: pointer;
-}
+.toggle-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; cursor: pointer; }
 
-input[type="range"] {
-    width: 100%;
-    accent-color: var(--accent);
-}
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+#scale-value { font-size: 13px; color: var(--text-secondary); }
 
-#scale-value {
-    font-size: 13px;
-    color: var(--text-secondary);
-}
+.connection-details p { font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.connection-details i { color: var(--text-muted); width: 16px; text-align: center; }
 
-#panel-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 150;
-}
+#panel-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 150; }
 #panel-overlay.hidden { display: none; }
 
-.about-text {
-    font-size: 12px;
-    color: var(--text-muted);
-    line-height: 1.6;
-}
+.about-text { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+.about-text a { color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
 
 /* ─── Responsive ──────────────────────────────── */
 
@@ -488,28 +560,30 @@ input[type="range"] {
     .logo h1 { font-size: 19px; }
     .shortcuts-content { max-width: 260px; }
     .shortcut-btn { width: 38px; height: 38px; font-size: 13px; }
+    .quick-action-btn { padding: 12px 14px; font-size: 13px; }
 }
 
 @media (min-width: 768px) {
     .connect-card { padding: 40px 32px; }
     #side-panel { width: 320px; }
     .shortcuts-content { max-width: 400px; }
+    .view-tab span { display: inline; }
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
-    :root { --topbar-height: 36px; }
+    :root { --topbar-height: 38px; }
     #shortcut-bar { bottom: 60px; }
-    .floating-btn { width: 44px; height: 44px; font-size: 18px; }
+    .floating-btn { width: 40px; height: 40px; font-size: 16px; }
     .keyboard-btn { bottom: 10px; right: 10px; }
     .mouse-btn { bottom: 10px; left: 10px; }
+    .fullscreen-btn { bottom: 10px; left: 60px; }
 }
-
-/* ─── PWA Standalone ──────────────────────────── */
 
 @media (display-mode: standalone) {
     #top-bar { padding-top: env(safe-area-inset-top); height: calc(var(--topbar-height) + env(safe-area-inset-top)); }
-    #vnc-container { top: calc(var(--topbar-height) + env(safe-area-inset-top)); }
+    .view-panel { top: calc(var(--topbar-height) + env(safe-area-inset-top)); }
     .keyboard-btn { bottom: calc(20px + env(safe-area-inset-bottom)); }
     .mouse-btn { bottom: calc(20px + env(safe-area-inset-bottom)); }
+    .fullscreen-btn { bottom: calc(20px + env(safe-area-inset-bottom)); }
     #shortcut-bar { bottom: calc(80px + env(safe-area-inset-bottom)); }
 }

@@ -13,63 +13,154 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
-    <!-- Tela de Conexão -->
+    <!-- ═══ Tela de Conexão ═══ -->
     <div id="connect-screen" class="screen active">
         <div class="connect-card">
             <div class="logo">
-                <i class="fas fa-mobile-screen-button"></i>
+                <div class="logo-icon">
+                    <i class="fas fa-mobile-screen-button"></i>
+                    <i class="fas fa-arrows-left-right logo-arrows"></i>
+                    <i class="fas fa-desktop"></i>
+                </div>
                 <h1>Kiro Mobile Bridge</h1>
-                <p>Acesse o Kiro pelo celular</p>
+                <p>Seu Kiro IDE no celular</p>
             </div>
             <div class="connect-form">
                 <div class="input-group">
-                    <label>Host VNC</label>
-                    <input type="text" id="vnc-host" value="{{ vnc_host }}" placeholder="localhost">
+                    <label><i class="fas fa-server"></i> Host</label>
+                    <input type="text" id="vnc-host" value="{{ vnc_host }}" placeholder="localhost ou IP">
                 </div>
                 <div class="input-group">
-                    <label>Porta Websockify</label>
+                    <label><i class="fas fa-plug"></i> Porta</label>
                     <input type="number" id="vnc-port" value="{{ websockify_port }}" placeholder="6081">
                 </div>
                 <div class="input-group">
-                    <label>Senha VNC</label>
-                    <input type="password" id="vnc-password" value="{{ vnc_password }}" placeholder="Senha">
+                    <label><i class="fas fa-lock"></i> Senha</label>
+                    <input type="password" id="vnc-password" value="{{ vnc_password }}" placeholder="Senha VNC">
                 </div>
                 <button id="btn-connect" class="btn-primary">
-                    <i class="fas fa-plug"></i> Conectar
+                    <i class="fas fa-plug"></i> Conectar ao Desktop
                 </button>
             </div>
             <div id="connect-status" class="status-msg"></div>
+            <div class="connect-tips">
+                <p><i class="fas fa-info-circle"></i> Dica: faça login no Kiro pelo desktop virtual antes de conectar</p>
+            </div>
         </div>
     </div>
 
-    <!-- Tela Principal - Desktop Remoto -->
+    <!-- ═══ Tela Principal ═══ -->
     <div id="main-screen" class="screen">
+
         <!-- Top Bar -->
         <div id="top-bar">
             <button id="btn-menu" class="bar-btn" aria-label="Menu">
                 <i class="fas fa-bars"></i>
             </button>
-            <span id="connection-info">Kiro Mobile Bridge</span>
-            <div class="top-bar-right">
-                <button id="btn-fullscreen" class="bar-btn" aria-label="Tela cheia">
+            <div id="view-tabs">
+                <button class="view-tab active" data-view="desktop">
+                    <i class="fas fa-desktop"></i>
+                    <span>Desktop</span>
+                </button>
+                <button class="view-tab" data-view="focus">
                     <i class="fas fa-expand"></i>
+                    <span>Foco</span>
                 </button>
-                <button id="btn-disconnect" class="bar-btn" aria-label="Desconectar">
-                    <i class="fas fa-power-off"></i>
+                <button class="view-tab" data-view="chat">
+                    <i class="fas fa-comments"></i>
+                    <span>Chat</span>
                 </button>
+            </div>
+            <button id="btn-disconnect" class="bar-btn" aria-label="Desconectar">
+                <i class="fas fa-power-off"></i>
+            </button>
+        </div>
+
+        <!-- View: Desktop Completo -->
+        <div id="view-desktop" class="view-panel active">
+            <div id="vnc-container">
+                <div id="vnc-screen"></div>
+                <div id="loading-overlay">
+                    <div class="spinner"></div>
+                    <p>Conectando ao desktop...</p>
+                </div>
             </div>
         </div>
 
-        <!-- Canvas VNC -->
-        <div id="vnc-container">
-            <div id="vnc-screen"></div>
-            <div id="loading-overlay">
-                <div class="spinner"></div>
-                <p>Conectando ao desktop...</p>
+        <!-- View: Modo Foco (zoom na área do editor) -->
+        <div id="view-focus" class="view-panel">
+            <div class="focus-controls">
+                <button class="focus-area-btn active" data-area="editor">
+                    <i class="fas fa-code"></i> Editor
+                </button>
+                <button class="focus-area-btn" data-area="explorer">
+                    <i class="fas fa-folder-tree"></i> Arquivos
+                </button>
+                <button class="focus-area-btn" data-area="terminal">
+                    <i class="fas fa-terminal"></i> Terminal
+                </button>
+                <button class="focus-area-btn" data-area="chat">
+                    <i class="fas fa-robot"></i> Kiro AI
+                </button>
+            </div>
+            <div id="focus-viewport">
+                <canvas id="focus-canvas"></canvas>
+            </div>
+            <div class="focus-hint">
+                <i class="fas fa-hand-pointer"></i> Arraste para navegar · Pinch para zoom
             </div>
         </div>
 
-        <!-- Toolbar Flutuante de Atalhos -->
+        <!-- View: Chat Kiro (interação direta) -->
+        <div id="view-chat" class="view-panel">
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <i class="fas fa-robot"></i>
+                    <span>Kiro AI Assistant</span>
+                </div>
+                <div class="chat-status" id="chat-status">
+                    <span class="status-dot"></span> Conectado via desktop
+                </div>
+            </div>
+            <div class="chat-instructions">
+                <div class="instruction-card">
+                    <i class="fas fa-info-circle"></i>
+                    <p>O chat do Kiro funciona pelo desktop virtual. Use o <strong>Modo Foco > Kiro AI</strong> para interagir diretamente com o chat, ou use o <strong>Desktop</strong> completo.</p>
+                </div>
+                <div class="quick-actions">
+                    <h4>Ações Rápidas</h4>
+                    <button class="quick-action-btn" data-shortcut="ctrl+shift+p">
+                        <i class="fas fa-terminal"></i> Command Palette
+                    </button>
+                    <button class="quick-action-btn" data-shortcut="ctrl+shift+i">
+                        <i class="fas fa-robot"></i> Abrir Chat Kiro
+                    </button>
+                    <button class="quick-action-btn" data-shortcut="ctrl+p">
+                        <i class="fas fa-file-code"></i> Quick Open
+                    </button>
+                    <button class="quick-action-btn" data-shortcut="ctrl+grave">
+                        <i class="fas fa-terminal"></i> Toggle Terminal
+                    </button>
+                    <button class="quick-action-btn" data-shortcut="ctrl+b">
+                        <i class="fas fa-columns"></i> Toggle Sidebar
+                    </button>
+                    <button class="quick-action-btn" data-shortcut="ctrl+s">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                    <button class="quick-action-btn" data-shortcut="ctrl+z">
+                        <i class="fas fa-undo"></i> Desfazer
+                    </button>
+                    <button class="quick-action-btn" data-shortcut="ctrl+shift+z">
+                        <i class="fas fa-redo"></i> Refazer
+                    </button>
+                    <button class="quick-action-btn" data-shortcut="ctrl+f">
+                        <i class="fas fa-search"></i> Buscar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shortcut Bar Flutuante -->
         <div id="shortcut-bar" class="collapsed">
             <button id="btn-toggle-shortcuts" class="toggle-btn" aria-label="Atalhos">
                 <i class="fas fa-keyboard"></i>
@@ -114,27 +205,30 @@
             </div>
         </div>
 
-        <!-- Teclado Virtual Toggle -->
+        <!-- Botões Flutuantes -->
         <button id="btn-keyboard" class="floating-btn keyboard-btn" aria-label="Teclado">
             <i class="fas fa-keyboard"></i>
         </button>
-        <input type="text" id="hidden-keyboard-input" autocomplete="off" autocorrect="off" 
+        <input type="text" id="hidden-keyboard-input" autocomplete="off" autocorrect="off"
                autocapitalize="off" spellcheck="false">
 
-        <!-- Mouse Mode Toggle -->
         <button id="btn-mouse-mode" class="floating-btn mouse-btn" aria-label="Modo mouse">
             <i class="fas fa-mouse-pointer"></i>
+        </button>
+
+        <button id="btn-fullscreen" class="floating-btn fullscreen-btn" aria-label="Tela cheia">
+            <i class="fas fa-expand"></i>
         </button>
 
         <!-- Painel Lateral -->
         <div id="side-panel" class="hidden">
             <div class="panel-header">
-                <h3>Configurações</h3>
+                <h3><i class="fas fa-cog"></i> Configurações</h3>
                 <button id="btn-close-panel" aria-label="Fechar"><i class="fas fa-times"></i></button>
             </div>
             <div class="panel-body">
                 <div class="panel-section">
-                    <h4>Qualidade</h4>
+                    <h4>Qualidade de Imagem</h4>
                     <div class="quality-options">
                         <button class="quality-btn active" data-quality="auto">Auto</button>
                         <button class="quality-btn" data-quality="high">Alta</button>
@@ -172,8 +266,22 @@
                     </label>
                 </div>
                 <div class="panel-section">
+                    <h4>Conexão</h4>
+                    <div class="connection-details">
+                        <p><i class="fas fa-server"></i> <span id="info-host">-</span></p>
+                        <p><i class="fas fa-plug"></i> <span id="info-port">-</span></p>
+                        <p><i class="fas fa-signal"></i> <span id="info-status">Desconectado</span></p>
+                    </div>
+                </div>
+                <div class="panel-section">
                     <h4>Sobre</h4>
-                    <p class="about-text">Kiro Mobile Bridge v1.0<br>Interface responsiva para Kiro IDE</p>
+                    <p class="about-text">
+                        Kiro Mobile Bridge v1.1<br>
+                        Interface responsiva para Kiro IDE<br>
+                        <a href="https://github.com/VagnerMafort/interface-kiro" target="_blank">
+                            <i class="fab fa-github"></i> GitHub
+                        </a>
+                    </p>
                 </div>
             </div>
         </div>
