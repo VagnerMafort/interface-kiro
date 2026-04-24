@@ -49,7 +49,7 @@ echo "  -> XFCE instalado"
 # ─── 3. Instalar TigerVNC Server ─────────────────
 echo ""
 echo "[3/7] Instalando TigerVNC Server..."
-apt install -y -qq tigervnc-standalone-server tigervnc-common 2>/dev/null
+apt install -y -qq tigervnc-standalone-server tigervnc-common xvfb 2>/dev/null
 
 # Configurar senha VNC
 mkdir -p ~/.vnc
@@ -62,9 +62,15 @@ cat > ~/.vnc/xstartup << 'XSTARTUP'
 unset SESSION_MANAGER
 unset DBUS_SESSION_BUS_ADDRESS
 export XDG_SESSION_TYPE=x11
+export DISPLAY=:1
+
+# Inicia dbus
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
+    eval $(dbus-launch --sh-syntax)
+fi
 
 # Inicia XFCE
-exec startxfce4 &
+startxfce4 &
 XSTARTUP
 chmod +x ~/.vnc/xstartup
 
@@ -162,10 +168,11 @@ Description=Kiro VNC Desktop Virtual
 After=network.target
 
 [Service]
-Type=forking
+Type=simple
 User=root
-ExecStartPre=/usr/bin/bash -c '/usr/bin/vncserver -kill :1 2>/dev/null || true'
-ExecStart=/usr/bin/vncserver :1 -geometry 1920x1080 -depth 24 -localhost no
+Environment=DISPLAY=:1
+ExecStartPre=/usr/bin/bash -c '/usr/bin/vncserver -kill :1 2>/dev/null; rm -f /tmp/.X1-lock /tmp/.X11-unix/X1 2>/dev/null; true'
+ExecStart=/usr/bin/vncserver :1 -geometry 1920x1080 -depth 24 -localhost no -fg
 ExecStop=/usr/bin/vncserver -kill :1
 Restart=on-failure
 RestartSec=5
