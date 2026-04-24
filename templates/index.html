@@ -262,11 +262,119 @@
 
     <script type="module">
         import RFB from '/static/vendor/noVNC/core/rfb.js';
-        window.RFB = RFB;
+        import { VoiceModule } from '/static/js/voice.js';
 
-        // Carrega bridge depois do RFB estar disponível
-        import('./static/js/voice.js');
-        import('./static/js/bridge.js');
+        const state = {
+            rfb: null, connected: false, currentView: "desktop", quality: "auto",
+            voice: null, lastTranscript: "", focusArea: "editor",
+            focusRegions: {
+                editor: {x:0.20,y:0.06,w:0.55,h:0.65}, explorer: {x:0,y:0.06,w:0.20,h:0.94},
+                terminal: {x:0.20,y:0.71,w:0.80,h:0.29}, chat: {x:0.75,y:0.06,w:0.25,h:0.65},
+            },
+        };
+        const $ = s => document.querySelector(s);
+        const $$ = s => document.querySelectorAll(s);
+
+        function showStatus(msg, type="") { const el=$("#connect-status"); el.textContent=msg; el.className=`connect-status ${type}`; }
+        function switchScreen(n) { $("#connect-screen").classList.toggle("active",n==="connect"); $("#main-screen").classList.toggle("active",n==="main"); }
+        function switchView(v) {
+            state.currentView=v;
+            $$(".sidebar-item[data-view]").forEach(i=>i.classList.toggle("active",i.dataset.view===v));
+            $$(".view").forEach(x=>x.classList.remove("active"));
+            $(`#view-${v}`).classList.add("active");
+            $("#topbar-title").textContent={desktop:"Desktop Remoto",focus:"Modo Foco",actions:"Ações Rápidas"}[v]||"";
+            closeSidebar();
+            if(v==="focus") updateFocusView();
+        }
+        function openSidebar(){$(".sidebar").classList.add("open");$("#sidebar-overlay").classList.remove("hidden");}
+        function closeSidebar(){$(".sidebar").classList.remove("open");$("#sidebar-overlay").classList.add("hidden");}
+
+        function connect() {
+            const host=$("#vnc-host").value.trim(), port=$("#vnc-port").value.trim(), password=$("#vnc-password").value;
+            if(!host||!port) return showStatus("Preencha host e porta","error");
+            showStatus("Conectando...","info");
+            $("#btn-connect").disabled=true;
+            const proto=location.protocol==="https:"?"wss":"ws";
+            try {
+                $("#vnc-screen").innerHTML="";
+                state.rfb=new RFB($("#vnc-screen"),`${proto}://${host}:${port}`,{credentials:{password},wsProtocols:["binary"]});
+                state.rfb.viewOnly=false; state.rfb.scaleViewport=true; state.rfb.clipViewport=true;
+                state.rfb.resizeSession=false; state.rfb.showDotCursor=true;
+                state.rfb.qualityLevel=6; state.rfb.compressionLevel=2;
+                state.rfb.addEventListener("connect",()=>{
+                    state.connected=true; showStatus("Conectado!","success");
+                    switchScreen("main"); $("#loading-overlay").classList.add("hidden");
+                });
+                state.rfb.addEventListener("disconnect",(e)=>{
+                    state.connected=false;
+                    if(!e.detail.clean) showStatus("Conexão perdida","error");
+                    switchScreen("connect"); $("#btn-connect").disabled=false;
+                });
+                state.rfb.addEventListener("credentialsrequired",()=>{
+                    if(state.rfb&&password) state.rfb.sendCredentials({password});
+                });
+            } catch(err) { showStatus(`Erro: ${err.message}`,"error"); $("#btn-connect").disabled=false; }
+        }
+        function disconnect(){if(state.rfb){state.rfb.disconnect();state.rfb=null;}state.connected=false;switchScreen("connect");}
+
+        const KEYMAP={ctrl:"ControlLeft",shift:"ShiftLeft",alt:"AltLeft",enter:"Enter",escape:"Escape",tab:"Tab",backspace:"Backspace",grave:"Backquote",space:"Space"};
+        const KEYSYM={ControlLeft:0xFFE3,ShiftLeft:0xFFE1,AltLeft:0xFFE9,Enter:0xFF0D,Escape:0xFF1B,Tab:0xFF09,Backspace:0xFF08,Delete:0xFFFF,Space:0x0020,Backquote:0x0060};
+        function sendKeys(str){if(!state.rfb||!state.connected)return;const keys=str.split("+").map(k=>KEYMAP[k.trim().toLowerCase()]||`Key${k.trim().toUpperCase()}`);keys.forEach(k=>state.rfb.sendKey(KEYSYM[k]||k.charCodeAt(3),k,true));[...keys].reverse().forEach(k=>state.rfb.sendKey(KEYSYM[k]||k.charCodeAt(3),k,false));}
+        function sendText(t){if(!state.rfb||!state.connected||!t)return;for(const c of t){const code=c.charCodeAt(0);state.rfb.sendKey(code,null,true);state.rfb.sendKey(code,null,false);}}
+        function applyQuality(l){if(!state.rfb)return;state.quality=l;const s={high:{q:9,c:0},medium:{q:5,c:4},low:{q:1,c:9},auto:{q:6,c:2}}[l]||{q:6,c:2};state.rfb.qualityLevel=s.q;state.rfb.compressionLevel=s.c;}
+
+        function updateFocusView(){
+            if(!state.rfb||!state.connected)return;const canvas=$("#vnc-screen canvas");if(!canvas)return;
+            const r=state.focusRegions[state.focusArea];if(!r)return;const fc=$("#focus-canvas"),vp=$("#focus-viewport");
+            const srcX=Math.floor(canvas.width*r.x),srcY=Math.floor(canvas.height*r.y),srcW=Math.floor(canvas.width*r.w),srcH=Math.floor(canvas.height*r.h);
+            const scale=Math.min(vp.clientWidth/srcW,vp.clientHeight/srcH);
+            fc.width=Math.floor(srcW*scale);fc.height=Math.floor(srcH*scale);
+            const ctx=fc.getContext("2d");ctx.imageSmoothingEnabled=true;
+            try{ctx.drawImage(canvas,srcX,srcY,srcW,srcH,0,0,fc.width,fc.height);}catch(e){}
+        }
+        setInterval(()=>{if(state.currentView==="focus"&&state.connected)updateFocusView();},100);
+
+        function toggleTheme(){const h=document.documentElement,d=h.dataset.theme==="dark";h.dataset.theme=d?"light":"dark";$("#theme-label").textContent=d?"Modo Escuro":"Modo Claro";$("#btn-theme i").className=d?"fas fa-sun":"fas fa-moon";localStorage.setItem("kiro-theme",h.dataset.theme);}
+        function loadTheme(){const s=localStorage.getItem("kiro-theme");if(s){document.documentElement.dataset.theme=s;$("#theme-label").textContent=s==="dark"?"Modo Claro":"Modo Escuro";$("#btn-theme i").className=s==="dark"?"fas fa-moon":"fas fa-sun";}}
+
+        function setupVoice(){
+            state.voice=new VoiceModule();const vp=$("#voice-panel"),tp=$("#tts-panel"),ind=$("#voice-indicator"),txt=$("#transcript-text"),btnS=$("#btn-voice-send");
+            state.voice.onTranscript=(text,isFinal)=>{if(isFinal){state.lastTranscript=text;txt.textContent=text;txt.className="";btnS.disabled=false;if($("#voice-auto-send").checked){sendText(text);txt.textContent=`✓ "${text}"`;txt.style.color="var(--accent)";setTimeout(()=>txt.style.color="",2000);}}else{txt.textContent=text;txt.className="interim";}};
+            state.voice.onStateChange=(s)=>{const mic=$("#btn-mic");if(s==="listening"){mic.classList.add("listening");ind.classList.add("active");$("#voice-status-text").textContent="Ouvindo...";}else{mic.classList.remove("listening");ind.classList.remove("active");$("#voice-status-text").textContent="Toque para falar";}};
+            $("#btn-mic").addEventListener("click",()=>{vp.classList.toggle("hidden");tp.classList.add("hidden");if(!vp.classList.contains("hidden"))state.voice.startListening();});
+            $("#btn-close-voice").addEventListener("click",()=>{vp.classList.add("hidden");state.voice.stopListening();});
+            ind.addEventListener("click",()=>state.voice.toggleListening());
+            btnS.addEventListener("click",()=>{if(state.lastTranscript)sendText(state.lastTranscript);});
+            $("#btn-voice-clear").addEventListener("click",()=>{state.lastTranscript="";txt.textContent="Sua fala aparecerá aqui...";txt.className="placeholder";btnS.disabled=true;});
+            $("#voice-lang").addEventListener("change",(e)=>state.voice.setLanguage(e.target.value));
+            $("#btn-tts").addEventListener("click",()=>{tp.classList.toggle("hidden");vp.classList.add("hidden");});
+            $("#btn-close-tts").addEventListener("click",()=>{tp.classList.add("hidden");state.voice.stopSpeaking();});
+            $("#btn-tts-play").addEventListener("click",()=>{const t=$("#tts-text").value.trim();if(t)state.voice.speak(t);});
+            $("#btn-tts-stop").addEventListener("click",()=>state.voice.stopSpeaking());
+            $("#btn-tts-paste").addEventListener("click",async()=>{try{$("#tts-text").value=await navigator.clipboard.readText();}catch(e){$("#tts-text").focus();}});
+        }
+
+        // Setup
+        $("#btn-connect").addEventListener("click", connect);
+        $("#vnc-password").addEventListener("keydown",(e)=>{if(e.key==="Enter")connect();});
+        $("#btn-disconnect-sidebar").addEventListener("click", disconnect);
+        $("#btn-sidebar").addEventListener("click", openSidebar);
+        $("#btn-close-sidebar").addEventListener("click", closeSidebar);
+        $("#sidebar-overlay").addEventListener("click", closeSidebar);
+        $$(".sidebar-item[data-view]").forEach(b=>b.addEventListener("click",()=>switchView(b.dataset.view)));
+        $$(".focus-tab").forEach(b=>b.addEventListener("click",()=>{$$(".focus-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");state.focusArea=b.dataset.area;updateFocusView();}));
+        $$(".action-card").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.shortcut){sendKeys(b.dataset.shortcut);switchView("desktop");}}));
+        $$(".chip[data-quality]").forEach(b=>b.addEventListener("click",()=>{$$(".chip[data-quality]").forEach(x=>x.classList.remove("active"));b.classList.add("active");applyQuality(b.dataset.quality);}));
+        $("#btn-theme").addEventListener("click", toggleTheme);
+        $("#btn-fullscreen-top").addEventListener("click",()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});else document.exitFullscreen().catch(()=>{});});
+        const kbInput=$("#hidden-keyboard-input");
+        $("#btn-keyboard").addEventListener("click",()=>{kbInput.focus();kbInput.click();});
+        kbInput.addEventListener("input",(e)=>{if(e.data)sendText(e.data);kbInput.value="";});
+        kbInput.addEventListener("keydown",(e)=>{if(["Backspace","Enter","Tab","Escape"].includes(e.key)){e.preventDefault();const sym=KEYSYM[e.code||e.key];if(sym&&state.rfb){state.rfb.sendKey(sym,e.code,true);state.rfb.sendKey(sym,e.code,false);}}});
+        loadTheme();
+        setupVoice();
+        document.addEventListener("gesturestart",(e)=>e.preventDefault());
+        console.log("[Kiro Mobile] v2.0 Ready");
     </script>
 </body>
 </html>
