@@ -129,7 +129,7 @@ class KiroChatSession:
         """Envia mensagem pro kiro-cli e retorna a resposta limpa."""
         self.busy = True
         try:
-            cmd = [KIRO_CLI, "chat", "--no-interactive", "-a"]
+            cmd = [KIRO_CLI, "chat", "--no-interactive"]
 
             # Depois da primeira mensagem, usa --resume pra manter contexto
             if not self.first_message:
@@ -141,7 +141,7 @@ class KiroChatSession:
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=120,
+                timeout=180,
                 cwd=self.project_path,
                 env={**os.environ, "NO_COLOR": "1", "TERM": "dumb"},
             )
