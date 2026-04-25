@@ -532,11 +532,23 @@ def handle_connect():
 # ─── Main ────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    ssl_cert = os.getenv("SSL_CERT")
+    ssl_key = os.getenv("SSL_KEY")
+    use_ssl = ssl_cert and ssl_key and os.path.exists(ssl_cert) and os.path.exists(ssl_key)
+
+    proto = "https" if use_ssl else "http"
     print("=" * 50)
     print("  Kiro Mobile Bridge v4")
-    print(f"  Interface: http://0.0.0.0:{APP_PORT}")
-    print("  Backend: kiro-cli chat (direto)")
-    print("  API: /api/chat, /api/projects, /api/models")
+    print(f"  Interface: {proto}://0.0.0.0:{APP_PORT}")
+    if not use_ssl:
+        print("  ⚠ SSL off — microfone requer HTTPS!")
     print("=" * 50)
 
-    socketio.run(app, host="0.0.0.0", port=APP_PORT, debug=False)
+    kwargs = {}
+    if use_ssl:
+        import ssl
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain(ssl_cert, ssl_key)
+        kwargs["ssl_context"] = ctx
+
+    socketio.run(app, host="0.0.0.0", port=APP_PORT, debug=False, **kwargs)
