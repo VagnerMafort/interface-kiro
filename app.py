@@ -14,7 +14,13 @@ from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
 from dotenv import load_dotenv
 
+import re
+
 load_dotenv()
+
+def strip_ansi(text):
+    """Remove códigos de cor ANSI do texto."""
+    return re.sub(r'\x1b\[[0-9;]*m|\[[\d;]*m', '', text)
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "kiro-mobile-bridge-secret")
@@ -56,6 +62,7 @@ class KiroChatSession:
             )
 
             response = result.stdout.strip()
+            response = strip_ansi(response)
             if not response and result.stderr:
                 response = f"[Erro] {result.stderr.strip()}"
 
