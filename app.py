@@ -585,9 +585,7 @@ if __name__ == "__main__":
 
     kwargs = {}
     if use_ssl:
-        import ssl
-        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        ctx.load_cert_chain(ssl_cert, ssl_key)
-        kwargs["ssl_context"] = ctx
+        kwargs["certfile"] = ssl_cert
+        kwargs["keyfile"] = ssl_key
 
     socketio.run(app, host="0.0.0.0", port=APP_PORT, debug=False, **kwargs)
