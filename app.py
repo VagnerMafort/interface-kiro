@@ -24,31 +24,22 @@ def strip_ansi(text):
 
 
 def clean_response(text):
-    """Limpa a resposta do kiro-cli — mantém APENAS o texto conversacional."""
+    """Limpa a resposta do kiro-cli — remove logs de ferramentas, mantém texto útil."""
     text = strip_ansi(text)
     lines = text.split('\n')
     
-    # Palavras que indicam linha técnica/log
-    tech_words = [
-        'using tool:', 'Completed in', 'Successfully', 'Operation ',
+    # Padrões que indicam log de ferramenta (início da linha)
+    skip_starts = [
         'Reading file:', 'Reading directory:', 'Writing file:', 'Searching for:',
         'Getting symbols', 'Batch fs_', 'I will run', "I'll modify", "I'll create",
-        'Purpose:', '↱', '⋮', '✓', '❗', '[K', '[2K', '[1G', '[1A',
-        'No matches found', 'Summary:', '▰', '▱', '[?25', 'Found ',
-        'bytes (~', 'tokens)', 'symbols:', 'socketio.run', 'ssl_context',
-        'ssl.SSLContext', 'os.getenv', 'os.path', 'import ssl',
-        'subprocess.run', 'print(f"', 'print("', 'def ', 'class ',
-        'if __name__', 'kwargs[', 'kwargs =', '.load_cert', '.environ',
-        'Function ', 'Class ', ' at ', ':1', ':8',
-        'Overview]', 'more items found', 'Updating:', 'Creating:',
-        '```', 'python', 'bash', 'nginx', 'certbot',
-        'systemctl', 'chmod', 'nano ', 'cat >', 'ln -s',
-        'apt install', 'apt update', 'proxy_pass', 'proxy_set',
-        'listen ', 'server_name', 'location /', 'ssl_certificate',
-        'reverse_proxy', 'Caddyfile', '/etc/nginx', '/etc/letsencrypt',
-        'socketio.run(', 'app.py:', 'static/js/', 'templates/',
-        '.env', 'SSL_CERT=', 'SSL_KEY=', 'APP_PORT=',
-        'VNC_HOST=', 'VNC_PORT=', 'WEBSOCKIFY',
+        'Purpose:', 'Operation ', 'Updating:', 'Creating:',
+        '↱', '⋮', '▰', '▱',
+    ]
+    
+    # Padrões exatos que indicam log
+    skip_contains = [
+        'using tool:', 'Completed in ', '(using tool:', 'bytes (~',
+        'tokens)', 'more items found)', '[K', '[2K', '[1G', '[1A', '[?25',
     ]
     
     clean = []
@@ -61,28 +52,29 @@ def clean_response(text):
             s = s[2:]
         elif s == '>':
             continue
-        # Pula linhas técnicas
-        if any(w in s for w in tech_words):
+        # Pula linhas de log (início)
+        if any(s.startswith(p) for p in skip_starts):
             continue
-        # Pula linhas que começam com - ou + (diff)
-        if s.startswith('- ') and len(s) < 100 and ':' in s:
+        # Pula linhas de log (contém)
+        if any(p in s for p in skip_contains):
             continue
-        if s.startswith('+ ') and len(s) < 100 and ':' in s:
+        # Pula linhas de diff
+        if re.match(r'^[+-]\s*\d+:', s):
             continue
-        # Pula linhas de números (diff)
-        if s[0].isdigit() and ',' in s[:10] and ':' in s[:15]:
+        if re.match(r'^\d+,\s*\d+:', s):
             continue
-        # Pula linhas muito curtas que parecem fragmentos de código
-        if len(s) < 5 and not s[0].isalpha():
+        # Pula indicadores de sucesso/erro isolados
+        if s in ['✓', '❗', '─', '']:
             continue
         clean.append(s)
     
     result = '\n'.join(clean).strip()
     
-    # Se ficou muito curto ou vazio, tenta pegar só parágrafos longos do original
-    if len(result) < 20:
-        paragraphs = [l.strip() for l in strip_ansi(text).split('\n') if len(l.strip()) > 30]
-        result = '\n'.join(paragraphs[-5:]) if paragraphs else strip_ansi(text).strip()
+    # Remove "Credits:" line no final
+    result = re.sub(r'▸\s*Credits:.*$', '', result, flags=re.MULTILINE).strip()
+    
+    if not result:
+        return strip_ansi(text).strip()
     
     return result
 
