@@ -20,7 +20,67 @@ load_dotenv()
 
 def strip_ansi(text):
     """Remove códigos de cor ANSI do texto."""
-    return re.sub(r'\x1b\[[0-9;]*m|\[[\d;]*m', '', text)
+    return re.sub(r'\x1b\[[0-9;]*m|\[[\d;]*m|\[\?25[lh]', '', text)
+
+
+def clean_response(text):
+    """Limpa a resposta do kiro-cli, removendo logs de ferramentas e mantendo só a resposta."""
+    text = strip_ansi(text)
+
+    # Remove linhas de progresso/ferramentas
+    skip_patterns = [
+        r'^\s*(Reading|Writing|Searching|Getting|Batch|Creating|Updating|I will run|I\'ll modify|I\'ll create)',
+        r'^\s*(↱|⋮|✓|❗|─|\[K|\[2K|\[1G|\[1A)',
+        r'^\s*-\s*(Completed|Summary)',
+        r'^\s*Purpose:',
+        r'^\s*\(using tool:',
+        r'^\s*\d+,\s*\d+:',  # diff line numbers
+        r'^\s*[+-]\s*\d+:',  # diff additions/removals
+        r'^\s*Operation \d+:',
+        r'^\s*\d+ more items found',
+        r'^\s*Successfully ',
+        r'^\s*No matches found',
+    ]
+
+    lines = text.split('\n')
+    clean_lines = []
+    in_tool_block = False
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Detecta início de bloco de ferramenta
+        if any(re.match(p, stripped) for p in skip_patterns):
+            in_tool_block = True
+            continue
+
+        # Detecta fim de bloco (linha com > no início = resposta do assistente)
+        if stripped.startswith('>') or stripped.startswith('##'):
+            in_tool_block = False
+            # Remove o > do início
+            cleaned = re.sub(r'^>\s*', '', stripped)
+            if cleaned:
+                clean_lines.append(cleaned)
+            continue
+
+        # Pula linhas de bloco de ferramenta
+        if in_tool_block:
+            # Mas se parece texto normal longo, inclui
+            if len(stripped) > 50 and not any(c in stripped for c in ['✓', '↱', '⋮', '[K', '+++']):
+                clean_lines.append(stripped)
+            continue
+
+        # Linha normal
+        if stripped:
+            clean_lines.append(stripped)
+
+    result = '\n'.join(clean_lines).strip()
+
+    # Se ficou vazio, retorna o texto original limpo
+    if not result:
+        return strip_ansi(text).strip()
+
+    return result
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "kiro-mobile-bridge-secret")
@@ -66,7 +126,7 @@ class KiroChatSession:
             pass
 
     def send(self, message):
-        """Envia mensagem pro kiro-cli e retorna a resposta."""
+        """Envia mensagem pro kiro-cli e retorna a resposta limpa."""
         self.busy = True
         try:
             cmd = [KIRO_CLI, "chat", "--no-interactive", "-a"]
@@ -83,10 +143,11 @@ class KiroChatSession:
                 text=True,
                 timeout=120,
                 cwd=self.project_path,
+                env={**os.environ, "NO_COLOR": "1", "TERM": "dumb"},
             )
 
             response = result.stdout.strip()
-            response = strip_ansi(response)
+            response = clean_response(response)
             if not response and result.stderr:
                 response = f"[Erro] {strip_ansi(result.stderr.strip())}"
 
