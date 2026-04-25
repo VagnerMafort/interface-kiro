@@ -133,7 +133,13 @@ class KiroChatSession:
         """Envia mensagem pro kiro-cli."""
         self.busy = True
         try:
-            cmd = [KIRO_CLI, "chat", "--no-interactive", message]
+            cmd = [KIRO_CLI, "chat", "--no-interactive"]
+
+            # Usa --resume pra manter contexto (sessões são por diretório)
+            if not self.first_message:
+                cmd.append("--resume")
+
+            cmd.append(message)
 
             result = subprocess.run(
                 cmd,
