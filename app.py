@@ -276,7 +276,7 @@ def api_git_status():
 
 @app.route("/api/git/push", methods=["POST"])
 def api_git_push():
-    """Git add + commit + push do projeto."""
+    """Git add + commit + pull + push do projeto."""
     data = request.get_json() or {}
     project = data.get("project", "interface-kiro")
     message = data.get("message", "update via Kiro Mobile")
@@ -284,7 +284,6 @@ def api_git_push():
     if not os.path.isdir(path):
         return jsonify({"error": "Projeto não encontrado"}), 404
     try:
-        env = os.environ.copy()
         # Git add
         subprocess.run(["git", "add", "-A"], cwd=path, timeout=10,
                        capture_output=True, text=True)
@@ -295,6 +294,8 @@ def api_git_push():
         )
         if "nothing to commit" in (commit.stdout + commit.stderr):
             return jsonify({"output": "Nada para commitar. Tudo já está atualizado.", "project": project})
+        # Git pull (sincroniza antes de push)
+        subprocess.run(["git", "pull", "--rebase"], cwd=path, timeout=30, capture_output=True, text=True)
         # Git push
         push = subprocess.run(
             ["git", "push"],
