@@ -132,3 +132,28 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 @media(max-width:380px){.grid-actions{grid-template-columns:repeat(2,1fr)}.login-page{padding:0 4px}}
 @media(min-width:768px){.sidebar{width:300px}.grid-actions{grid-template-columns:repeat(4,1fr)}}
 @media(display-mode:standalone){.topbar{padding-top:env(safe-area-inset-top);height:calc(50px + env(safe-area-inset-top))}.chat-input-area{padding-bottom:calc(12px + env(safe-area-inset-bottom))}}
+
+/* ── Typing Indicator ── */
+.typing{display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:13px;color:var(--tx3)}
+.typing.hidden{display:none}
+.typing-dots{display:flex;gap:4px}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--tx3);animation:blink 1.4s infinite both}
+.typing-dots span:nth-child(2){animation-delay:.2s}
+.typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.3}40%{opacity:1}}
+
+/* ── Project Badge ── */
+.topbar-badge{font-size:11px;background:var(--green);color:#fff;padding:3px 8px;border-radius:12px;font-weight:500}
+
+/* ── Sidebar Select ── */
+.sb-select{width:calc(100% - 16px);margin:0 8px;background:var(--bg3);border:1px solid var(--brd);border-radius:8px;color:var(--tx);padding:10px 12px;font-size:14px;outline:none}
+.sb-select:focus{border-color:var(--green)}
+.sb-label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3);font-weight:600;padding:4px 12px 6px}
+
+/* ── Welcome Chips ── */
+.welcome-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px}
+.chip-btn{background:var(--bg3);border:1px solid var(--brd);border-radius:20px;color:var(--tx2);padding:8px 14px;font-size:13px;cursor:pointer;transition:all .15s}
+.chip-btn:hover{border-color:var(--green);color:var(--tx)}
+
+/* ── Code in messages ── */
+.msg-bubble code{background:var(--bg4);padding:1px 5px;border-radius:4px;font-size:13px;font-family:monospace}

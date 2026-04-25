@@ -19,10 +19,15 @@
             <button id="btn-sb-close" class="btn-icon"><i class="fas fa-xmark"></i></button>
         </div>
         <nav class="sb-nav">
+            <div class="sb-label">Projeto Ativo</div>
+            <select id="project-select" class="sb-select">
+                <option value="interface-kiro">interface-kiro</option>
+                <option value="veo3-tool">veo3-tool</option>
+            </select>
+            <div class="sb-label" style="margin-top:16px">Navegação</div>
             <button class="sb-link active" data-tab="chat"><i class="fas fa-message"></i> Chat</button>
             <button class="sb-link" data-tab="actions"><i class="fas fa-grid"></i> Ações Rápidas</button>
             <button class="sb-link" data-tab="files"><i class="fas fa-folder"></i> Projetos</button>
-            <button class="sb-link" data-tab="screenshot"><i class="fas fa-camera"></i> Ver Desktop</button>
         </nav>
         <div class="sb-footer">
             <button id="btn-theme" class="sb-link"><i class="fas fa-moon" id="theme-icon"></i> <span id="theme-label">Modo Claro</span></button>
@@ -35,46 +40,48 @@
         <header class="topbar">
             <button id="btn-menu" class="btn-icon"><i class="fas fa-bars"></i></button>
             <span class="topbar-title" id="topbar-title">Kiro</span>
-            <button id="btn-fullscreen" class="btn-icon"><i class="fas fa-expand"></i></button>
+            <span class="topbar-badge" id="project-badge">interface-kiro</span>
         </header>
 
         <!-- Tab: Chat -->
         <section id="tab-chat" class="tab active">
             <div class="chat-area" id="chat-area">
-                <div class="chat-welcome">
+                <div class="chat-welcome" id="chat-welcome">
                     <div class="welcome-icon"><i class="fas fa-bolt"></i></div>
                     <h2>Kiro Mobile</h2>
-                    <p>Envie comandos por texto ou voz para o seu workspace</p>
+                    <p>Chat direto com o Kiro AI. Suas mensagens têm impacto real nos seus projetos.</p>
+                    <div class="welcome-chips">
+                        <button class="chip-btn" data-msg="Liste os arquivos do projeto">📁 Listar arquivos</button>
+                        <button class="chip-btn" data-msg="Explique a estrutura do projeto">🔍 Estrutura</button>
+                        <button class="chip-btn" data-msg="Quais melhorias você sugere?">💡 Sugestões</button>
+                    </div>
                 </div>
                 <div id="chat-messages"></div>
+            </div>
+            <div id="typing-indicator" class="typing hidden">
+                <div class="typing-dots"><span></span><span></span><span></span></div>
+                <span>Kiro está pensando...</span>
             </div>
             <div class="chat-input-area">
                 <div class="input-bar">
                     <button id="btn-mic-chat" class="btn-icon mic-btn"><i class="fas fa-microphone"></i></button>
-                    <input type="text" id="chat-input" placeholder="Digite um comando..." autocomplete="off">
+                    <input type="text" id="chat-input" placeholder="Pergunte algo ao Kiro..." autocomplete="off">
                     <button id="btn-send" class="btn-icon send-btn"><i class="fas fa-arrow-up"></i></button>
                 </div>
-                <div class="input-hint">Texto é enviado para o Kiro no desktop virtual</div>
             </div>
         </section>
 
         <!-- Tab: Ações Rápidas -->
         <section id="tab-actions" class="tab">
             <div class="tab-scroll">
-                <div class="section-title">Atalhos do Kiro</div>
-                <div class="grid-actions">
-                    <button class="action-btn" data-keys="ctrl+shift+i"><i class="fas fa-robot"></i><span>Chat AI</span></button>
-                    <button class="action-btn" data-keys="ctrl+shift+p"><i class="fas fa-terminal"></i><span>Comandos</span></button>
-                    <button class="action-btn" data-keys="ctrl+p"><i class="fas fa-file"></i><span>Abrir Arquivo</span></button>
-                    <button class="action-btn" data-keys="ctrl+grave"><i class="fas fa-terminal"></i><span>Terminal</span></button>
-                    <button class="action-btn" data-keys="ctrl+s"><i class="fas fa-floppy-disk"></i><span>Salvar</span></button>
-                    <button class="action-btn" data-keys="ctrl+z"><i class="fas fa-rotate-left"></i><span>Desfazer</span></button>
-                    <button class="action-btn" data-keys="ctrl+shift+z"><i class="fas fa-rotate-right"></i><span>Refazer</span></button>
-                    <button class="action-btn" data-keys="ctrl+b"><i class="fas fa-table-columns"></i><span>Sidebar</span></button>
-                    <button class="action-btn" data-keys="ctrl+f"><i class="fas fa-magnifying-glass"></i><span>Buscar</span></button>
-                    <button class="action-btn" data-keys="ctrl+c"><i class="fas fa-copy"></i><span>Copiar</span></button>
-                    <button class="action-btn" data-keys="ctrl+v"><i class="fas fa-paste"></i><span>Colar</span></button>
-                    <button class="action-btn" data-keys="Escape"><i class="fas fa-xmark"></i><span>Escape</span></button>
+                <div class="section-title">Comandos Rápidos</div>
+                <div class="grid-actions cols-2">
+                    <button class="action-btn wide" data-msg="Liste todos os arquivos do projeto"><i class="fas fa-folder-tree"></i><span>Listar Arquivos</span></button>
+                    <button class="action-btn wide" data-msg="Mostre o git status"><i class="fas fa-code-branch"></i><span>Git Status</span></button>
+                    <button class="action-btn wide" data-msg="Explique a estrutura do projeto"><i class="fas fa-sitemap"></i><span>Estrutura</span></button>
+                    <button class="action-btn wide" data-msg="Quais bugs ou problemas você encontra no código?"><i class="fas fa-bug"></i><span>Encontrar Bugs</span></button>
+                    <button class="action-btn wide" data-msg="Sugira melhorias para o código"><i class="fas fa-lightbulb"></i><span>Sugestões</span></button>
+                    <button class="action-btn wide" data-msg="Crie um resumo do README"><i class="fas fa-file-lines"></i><span>Resumo README</span></button>
                 </div>
                 <div class="section-title" style="margin-top:24px">Voz</div>
                 <div class="grid-actions cols-2">
@@ -88,22 +95,7 @@
         <section id="tab-files" class="tab">
             <div class="tab-scroll">
                 <div class="section-title">Seus Projetos</div>
-                <div class="file-list">
-                    <div class="file-item"><i class="fas fa-folder-open"></i><div><strong>interface-kiro</strong><small>/root/interface-kiro</small></div></div>
-                    <div class="file-item"><i class="fas fa-folder-open"></i><div><strong>veo3-tool</strong><small>/root/veo3-tool</small></div></div>
-                </div>
-                <p class="hint-text" style="margin-top:16px">Use "Chat AI" ou "Comandos" nas Ações Rápidas para navegar nos projetos.</p>
-            </div>
-        </section>
-
-        <!-- Tab: Ver Desktop (screenshot) -->
-        <section id="tab-screenshot" class="tab">
-            <div class="tab-scroll" style="text-align:center">
-                <div class="section-title">Desktop Virtual</div>
-                <img id="desktop-img" src="" alt="Desktop" style="width:100%;border-radius:8px;border:1px solid var(--brd)">
-                <button id="btn-refresh-desktop" class="btn-green" style="margin-top:12px;width:auto;padding:10px 24px;display:inline-block">
-                    <i class="fas fa-refresh"></i> Atualizar
-                </button>
+                <div id="project-list" class="file-list"></div>
             </div>
         </section>
     </main>
@@ -139,64 +131,72 @@
     <script type="module">
         import { VoiceModule } from '/static/js/voice.js';
         const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
-        const state={voice:null,lastTranscript:""};
-
-        // ── API helpers ──
-        async function apiType(text){return fetch("/api/type",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});}
-        async function apiKey(keys){return fetch("/api/key",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({keys})});}
-        async function apiOcr(){const r=await fetch("/api/ocr/chat");return r.json();}
+        let currentProject="interface-kiro", sending=false;
+        const voice={mod:null,last:""};
 
         // ── Chat ──
         function addMsg(type,text){
+            const w=$("#chat-welcome"); if(w)w.style.display="none";
             const area=$("#chat-messages"),div=document.createElement("div");
             div.className="chat-msg "+type;
-            div.innerHTML=type==="user"
+            const html=type==="user"
                 ?`<div class="msg-bubble user-bubble">${esc(text)}</div>`
-                :`<div class="msg-bubble sys-bubble"><i class="fas fa-bolt"></i> ${esc(text)}</div>`;
+                :`<div class="msg-bubble sys-bubble">${formatResponse(text)}</div>`;
+            div.innerHTML=html;
             area.appendChild(div);
             $("#chat-area").scrollTop=$("#chat-area").scrollHeight;
         }
-        function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>");}
+        function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+        function formatResponse(s){
+            // Básico: preserva quebras de linha e código
+            return esc(s).replace(/\n/g,"<br>").replace(/`([^`]+)`/g,"<code>$1</code>");
+        }
 
-        async function sendChat(){
-            const input=$("#chat-input"),text=input.value.trim();
-            if(!text)return;
+        async function sendMsg(text){
+            if(!text||sending)return;
+            sending=true;
             addMsg("user",text);
-            input.value="";
+            $("#chat-input").value="";
+            $("#typing-indicator").classList.remove("hidden");
+            $("#btn-send").disabled=true;
+
             try{
-                await apiType(text);
-                await apiKey("Return");
-                addMsg("system","Enviado ✓ Aguardando resposta...");
-                pollForResponse();
-            }catch(e){addMsg("system","Erro: "+e.message);}
+                const res=await fetch("/api/chat",{
+                    method:"POST",
+                    headers:{"Content-Type":"application/json"},
+                    body:JSON.stringify({message:text,project:currentProject})
+                });
+                const data=await res.json();
+                if(data.error){addMsg("system","⚠️ "+data.error);}
+                else{addMsg("system",data.response||"(sem resposta)");}
+            }catch(e){addMsg("system","Erro de conexão: "+e.message);}
+            finally{
+                sending=false;
+                $("#typing-indicator").classList.add("hidden");
+                $("#btn-send").disabled=false;
+            }
         }
 
-        let lastOcr="";
-        function pollForResponse(){
-            let count=0;
-            const iv=setInterval(async()=>{
-                count++;
-                if(count>30){clearInterval(iv);addMsg("system","Tempo esgotado. Veja o desktop para a resposta.");return;}
-                try{
-                    const d=await apiOcr();
-                    if(d.text&&d.text!==lastOcr&&d.text.length>10){
-                        lastOcr=d.text;
-                        const lines=d.text.split("\n").filter(l=>l.trim());
-                        const recent=lines.slice(-10).join("\n");
-                        if(recent.trim()){addMsg("system",recent);clearInterval(iv);}
-                    }
-                }catch(e){}
-            },1000);
-        }
-
-        // ── Ações Rápidas (via API) ──
-        async function sendShortcut(keys){
-            // Converte "ctrl+shift+p" para "ctrl+shift+p" (xdotool format)
-            const xkeys=keys.replace(/ctrl/gi,"ctrl").replace(/shift/gi,"shift").replace(/alt/gi,"alt").replace(/grave/gi,"grave");
+        // ── Projetos ──
+        async function loadProjects(){
             try{
-                await apiKey(xkeys);
-                addMsg("system","Atalho enviado ✓");
-            }catch(e){addMsg("system","Erro: "+e.message);}
+                const res=await fetch("/api/projects");
+                const projects=await res.json();
+                const list=$("#project-list"),sel=$("#project-select");
+                list.innerHTML="";sel.innerHTML="";
+                projects.forEach(p=>{
+                    list.innerHTML+=`<div class="file-item" data-project="${p.name}"><i class="fas fa-folder-open"></i><div><strong>${p.name}</strong><small>${p.path}</small></div></div>`;
+                    sel.innerHTML+=`<option value="${p.name}"${p.name===currentProject?" selected":""}>${p.name}</option>`;
+                });
+                // Click pra trocar projeto
+                $$(".file-item[data-project]").forEach(el=>el.addEventListener("click",()=>{
+                    currentProject=el.dataset.project;
+                    sel.value=currentProject;
+                    $("#project-badge").textContent=currentProject;
+                    addMsg("system","Projeto trocado para: "+currentProject);
+                    switchTab("chat");
+                }));
+            }catch(e){}
         }
 
         // ── Tabs ──
@@ -204,14 +204,8 @@
             $$(".sb-link[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
             $$(".tab").forEach(x=>x.classList.remove("active"));
             $(`#tab-${t}`).classList.add("active");
-            $("#topbar-title").textContent={chat:"Kiro",actions:"Ações Rápidas",files:"Projetos",screenshot:"Desktop"}[t]||"Kiro";
+            $("#topbar-title").textContent={chat:"Kiro",actions:"Ações Rápidas",files:"Projetos"}[t]||"Kiro";
             closeSB();
-            if(t==="screenshot") refreshDesktop();
-        }
-
-        // ── Desktop screenshot ──
-        function refreshDesktop(){
-            $("#desktop-img").src="/api/screenshot?t="+Date.now();
         }
 
         // ── Sidebar ──
@@ -224,36 +218,29 @@
 
         // ── Voz ──
         function setupVoice(){
-            state.voice=new VoiceModule();
+            voice.mod=new VoiceModule();
             const vs=$("#voice-sheet"),ts=$("#tts-sheet"),dot=$("#voice-dot"),txt=$("#transcript-text"),btnS=$("#btn-voice-send");
-            state.voice.onTranscript=async(text,fin)=>{
-                if(fin){
-                    state.lastTranscript=text;txt.textContent=text;txt.className="";btnS.disabled=false;
-                    if($("#voice-auto-send").checked){
-                        addMsg("user","🎤 "+text);
-                        await apiType(text);await apiKey("Return");
-                        addMsg("system","Enviado ✓ Aguardando...");
-                        pollForResponse();
-                        txt.textContent="✓ Enviado";txt.style.color="var(--green)";setTimeout(()=>txt.style.color="",2000);
-                    }
+            voice.mod.onTranscript=async(text,fin)=>{
+                if(fin){voice.last=text;txt.textContent=text;txt.className="";btnS.disabled=false;
+                    if($("#voice-auto-send").checked){sendMsg(text);vs.classList.add("hidden");voice.mod.stopListening();}
                 }else{txt.textContent=text;txt.className="muted";}
             };
-            state.voice.onStateChange=s=>{
+            voice.mod.onStateChange=s=>{
                 const m=$("#btn-mic-chat");
                 if(s==="listening"){m.classList.add("on");dot.classList.add("on");$("#voice-status").textContent="Ouvindo...";}
                 else{m.classList.remove("on");dot.classList.remove("on");$("#voice-status").textContent="Toque para falar";}
             };
-            $("#btn-mic-chat").addEventListener("click",()=>{vs.classList.toggle("hidden");ts.classList.add("hidden");if(!vs.classList.contains("hidden"))state.voice.startListening();else state.voice.stopListening();});
-            $("#btn-close-voice").addEventListener("click",()=>{vs.classList.add("hidden");state.voice.stopListening();});
-            dot.addEventListener("click",()=>state.voice.toggleListening());
-            btnS.addEventListener("click",async()=>{if(state.lastTranscript){addMsg("user","🎤 "+state.lastTranscript);await apiType(state.lastTranscript);await apiKey("Return");addMsg("system","Enviado ✓");pollForResponse();}});
-            $("#btn-voice-clear").addEventListener("click",()=>{state.lastTranscript="";txt.textContent="Sua fala aparecerá aqui...";txt.className="muted";btnS.disabled=true;});
-            $("#voice-lang").addEventListener("change",e=>state.voice.setLanguage(e.target.value));
-            $("#btn-voice-page").addEventListener("click",()=>{vs.classList.remove("hidden");ts.classList.add("hidden");state.voice.startListening();});
+            $("#btn-mic-chat").addEventListener("click",()=>{vs.classList.toggle("hidden");ts.classList.add("hidden");if(!vs.classList.contains("hidden"))voice.mod.startListening();else voice.mod.stopListening();});
+            $("#btn-close-voice").addEventListener("click",()=>{vs.classList.add("hidden");voice.mod.stopListening();});
+            dot.addEventListener("click",()=>voice.mod.toggleListening());
+            btnS.addEventListener("click",()=>{if(voice.last){sendMsg(voice.last);vs.classList.add("hidden");}});
+            $("#btn-voice-clear").addEventListener("click",()=>{voice.last="";txt.textContent="Sua fala aparecerá aqui...";txt.className="muted";btnS.disabled=true;});
+            $("#voice-lang").addEventListener("change",e=>voice.mod.setLanguage(e.target.value));
+            $("#btn-voice-page").addEventListener("click",()=>{vs.classList.remove("hidden");ts.classList.add("hidden");voice.mod.startListening();});
             $("#btn-tts-page").addEventListener("click",()=>{ts.classList.remove("hidden");vs.classList.add("hidden");});
-            $("#btn-close-tts").addEventListener("click",()=>{ts.classList.add("hidden");state.voice.stopSpeaking();});
-            $("#btn-tts-play").addEventListener("click",()=>{const t=$("#tts-text").value.trim();if(t)state.voice.speak(t);});
-            $("#btn-tts-stop").addEventListener("click",()=>state.voice.stopSpeaking());
+            $("#btn-close-tts").addEventListener("click",()=>{ts.classList.add("hidden");voice.mod.stopSpeaking();});
+            $("#btn-tts-play").addEventListener("click",()=>{const t=$("#tts-text").value.trim();if(t)voice.mod.speak(t);});
+            $("#btn-tts-stop").addEventListener("click",()=>voice.mod.stopSpeaking());
             $("#btn-tts-paste").addEventListener("click",async()=>{try{$("#tts-text").value=await navigator.clipboard.readText();}catch(e){$("#tts-text").focus();}});
         }
 
@@ -262,14 +249,14 @@
         $("#btn-sb-close").addEventListener("click",closeSB);
         $("#sb-overlay").addEventListener("click",closeSB);
         $$(".sb-link[data-tab]").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
-        $$(".action-btn[data-keys]").forEach(b=>b.addEventListener("click",()=>{sendShortcut(b.dataset.keys);switchTab("chat");}));
+        $$(".action-btn[data-msg]").forEach(b=>b.addEventListener("click",()=>{sendMsg(b.dataset.msg);switchTab("chat");}));
+        $$(".chip-btn[data-msg]").forEach(b=>b.addEventListener("click",()=>sendMsg(b.dataset.msg)));
         $("#btn-theme").addEventListener("click",toggleTheme);
-        $("#btn-fullscreen").addEventListener("click",()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});else document.exitFullscreen().catch(()=>{});});
-        $("#btn-send").addEventListener("click",sendChat);
-        $("#chat-input").addEventListener("keydown",e=>{if(e.key==="Enter")sendChat();});
-        $("#btn-refresh-desktop").addEventListener("click",refreshDesktop);
+        $("#btn-send").addEventListener("click",()=>sendMsg($("#chat-input").value.trim()));
+        $("#chat-input").addEventListener("keydown",e=>{if(e.key==="Enter")sendMsg($("#chat-input").value.trim());});
+        $("#project-select").addEventListener("change",e=>{currentProject=e.target.value;$("#project-badge").textContent=currentProject;});
+        loadProjects();
         setupVoice();
-        addMsg("system","Conectado ao desktop virtual. Digite ou fale para interagir com o Kiro.");
     </script>
 </body>
 </html>

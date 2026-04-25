@@ -1,17 +1,16 @@
 """
-Kiro Mobile Bridge v3 - Interface mobile + API de captura do desktop
+Kiro Mobile Bridge v4 - Integração direta com kiro-cli chat
+Sem VNC, sem OCR. Chat direto com o Kiro.
 """
 
 import os
 import subprocess
 import signal
 import sys
-import time
 import json
-import hashlib
 import threading
-from io import BytesIO
-from flask import Flask, render_template, jsonify, request, send_file
+import time
+from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
 from dotenv import load_dotenv
 
@@ -19,104 +18,86 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "kiro-mobile-bridge-secret")
-
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
-# Configurações
-VNC_HOST = os.getenv("VNC_HOST", "localhost")
-VNC_PORT = int(os.getenv("VNC_PORT", "5901"))
-NOVNC_PORT = int(os.getenv("NOVNC_PORT", "6080"))
-WEBSOCKIFY_PORT = int(os.getenv("WEBSOCKIFY_PORT", "6081"))
 APP_PORT = int(os.getenv("APP_PORT", "9090"))
-VNC_PASSWORD = os.getenv("VNC_PASSWORD", "kiro123")
-DISPLAY = os.getenv("DISPLAY", ":1")
 
-websockify_process = None
-
-# Cache para OCR (evita reprocessar a mesma imagem)
-ocr_cache = {"hash": "", "text": "", "timestamp": 0}
+# Estado das sessões de chat
+chat_sessions = {}
 
 
-def start_websockify():
-    global websockify_process
-    try:
-        websockify_process = subprocess.Popen(
-            ["websockify", "--web", find_novnc_path(),
-             str(WEBSOCKIFY_PORT), f"{VNC_HOST}:{VNC_PORT}"],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        )
-        print(f"[OK] Websockify porta {WEBSOCKIFY_PORT}")
-    except Exception as e:
-        print(f"[AVISO] websockify: {e}")
+class KiroChatSession:
+    """Gerencia uma sessão de chat com kiro-cli."""
 
+    def __init__(self, project_path, session_id=None):
+        self.project_path = project_path
+        self.session_id = session_id
+        self.history = []
+        self.busy = False
 
-def find_novnc_path():
-    for p in ["/usr/share/novnc", "/usr/share/noVNC", "/opt/novnc"]:
-        if os.path.isdir(p):
-            return p
-    return os.path.join(os.path.dirname(__file__), "novnc")
-
-
-def cleanup(signum=None, frame=None):
-    if websockify_process:
-        websockify_process.terminate()
-    sys.exit(0)
-
-
-signal.signal(signal.SIGINT, cleanup)
-signal.signal(signal.SIGTERM, cleanup)
-
-
-def take_screenshot(region=None):
-    """Tira screenshot do desktop virtual usando xdotool + import (ImageMagick)."""
-    try:
-        env = os.environ.copy()
-        env["DISPLAY"] = DISPLAY
-        filepath = "/tmp/kiro_screen.png"
-
-        if region:
-            # region = "WxH+X+Y" ex: "500x800+1400+50"
-            cmd = ["import", "-window", "root", "-crop", region, filepath]
-        else:
-            cmd = ["import", "-window", "root", filepath]
-
-        subprocess.run(cmd, env=env, timeout=5, capture_output=True)
-        return filepath
-    except Exception as e:
-        print(f"[ERRO] Screenshot: {e}")
-        return None
-
-
-def ocr_image(filepath):
-    """Extrai texto da imagem usando tesseract OCR."""
-    try:
-        result = subprocess.run(
-            ["tesseract", filepath, "stdout", "-l", "eng+por", "--psm", "6"],
-            capture_output=True, text=True, timeout=10
-        )
-        return result.stdout.strip()
-    except FileNotFoundError:
-        # Tesseract não instalado, tenta com python
+    def send(self, message):
+        """Envia mensagem pro kiro-cli e retorna a resposta."""
+        self.busy = True
         try:
-            from PIL import Image
-            import pytesseract
-            img = Image.open(filepath)
-            return pytesseract.image_to_string(img, lang="eng+por")
+            cmd = ["kiro-cli", "chat", "--no-interactive", "-a"]
+
+            if self.session_id:
+                cmd.extend(["--resume-id", self.session_id])
+
+            cmd.append(message)
+
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                cwd=self.project_path,
+            )
+
+            response = result.stdout.strip()
+            if not response and result.stderr:
+                response = f"[Erro] {result.stderr.strip()}"
+
+            self.history.append({"role": "user", "text": message})
+            self.history.append({"role": "assistant", "text": response})
+
+            return response
+
+        except subprocess.TimeoutExpired:
+            return "[Tempo esgotado - o Kiro demorou mais de 2 minutos para responder]"
+        except Exception as e:
+            return f"[Erro] {str(e)}"
+        finally:
+            self.busy = False
+
+    def get_sessions(self):
+        """Lista sessões salvas do projeto."""
+        try:
+            result = subprocess.run(
+                ["kiro-cli", "chat", "--list-sessions", "-f", "json"],
+                capture_output=True, text=True, timeout=10,
+                cwd=self.project_path,
+            )
+            return json.loads(result.stdout) if result.stdout.strip() else []
         except Exception:
-            return "[OCR não disponível - instale tesseract: apt install tesseract-ocr]"
-    except Exception as e:
-        return f"[Erro OCR: {e}]"
+            return []
+
+
+def get_session(project):
+    """Retorna ou cria sessão de chat para o projeto."""
+    if project not in chat_sessions:
+        path = f"/root/{project}"
+        if not os.path.isdir(path):
+            path = "/root"
+        chat_sessions[project] = KiroChatSession(path)
+    return chat_sessions[project]
 
 
 # ─── Rotas ───────────────────────────────────────────────
 
 @app.route("/")
 def index():
-    return render_template(
-        "index.html",
-        vnc_host=VNC_HOST, vnc_port=VNC_PORT,
-        websockify_port=WEBSOCKIFY_PORT, vnc_password=VNC_PASSWORD,
-    )
+    return render_template("index.html")
 
 
 @app.route("/health")
@@ -124,140 +105,114 @@ def health():
     return jsonify({"status": "ok"})
 
 
-@app.route("/api/screenshot")
-def api_screenshot():
-    """Retorna screenshot do desktop como imagem PNG."""
-    region = request.args.get("region", None)
-    filepath = take_screenshot(region)
-    if filepath and os.path.exists(filepath):
-        return send_file(filepath, mimetype="image/png")
-    return jsonify({"error": "Falha ao capturar tela"}), 500
+@app.route("/api/projects")
+def api_projects():
+    """Lista projetos disponíveis em /root."""
+    projects = []
+    for name in os.listdir("/root"):
+        path = f"/root/{name}"
+        if os.path.isdir(path) and os.path.isdir(f"{path}/.git"):
+            projects.append({"name": name, "path": path})
+    return jsonify(projects)
 
 
-@app.route("/api/screenshot/chat")
-def api_screenshot_chat():
-    """Screenshot da área do chat do Kiro (lado direito da tela)."""
-    # Kiro chat fica ~75% da largura, toda a altura
-    filepath = take_screenshot("500x1000+1420+50")
-    if filepath and os.path.exists(filepath):
-        return send_file(filepath, mimetype="image/png")
-    return jsonify({"error": "Falha ao capturar chat"}), 500
-
-
-@app.route("/api/ocr")
-def api_ocr():
-    """Captura a tela e extrai texto via OCR."""
-    region = request.args.get("region", None)
-    filepath = take_screenshot(region)
-    if not filepath:
-        return jsonify({"error": "Falha ao capturar tela"}), 500
-
-    # Verifica cache
-    with open(filepath, "rb") as f:
-        img_hash = hashlib.md5(f.read()).hexdigest()
-
-    if img_hash == ocr_cache["hash"] and time.time() - ocr_cache["timestamp"] < 5:
-        return jsonify({"text": ocr_cache["text"], "cached": True})
-
-    text = ocr_image(filepath)
-    ocr_cache["hash"] = img_hash
-    ocr_cache["text"] = text
-    ocr_cache["timestamp"] = time.time()
-
-    return jsonify({"text": text, "cached": False})
-
-
-@app.route("/api/ocr/chat")
-def api_ocr_chat():
-    """Extrai texto da área do chat do Kiro."""
-    filepath = take_screenshot("500x1000+1420+50")
-    if not filepath:
-        return jsonify({"error": "Falha"}), 500
-    text = ocr_image(filepath)
-    return jsonify({"text": text})
-
-
-@app.route("/api/type", methods=["POST"])
-def api_type():
-    """Digita texto no desktop virtual usando xdotool."""
+@app.route("/api/chat", methods=["POST"])
+def api_chat():
+    """Envia mensagem para o Kiro e retorna resposta."""
     data = request.get_json()
-    text = data.get("text", "")
-    if not text:
-        return jsonify({"error": "Texto vazio"}), 400
+    message = data.get("message", "").strip()
+    project = data.get("project", "interface-kiro")
 
+    if not message:
+        return jsonify({"error": "Mensagem vazia"}), 400
+
+    session = get_session(project)
+
+    if session.busy:
+        return jsonify({"error": "Kiro está processando outra mensagem. Aguarde."}), 429
+
+    response = session.send(message)
+    return jsonify({
+        "response": response,
+        "project": project,
+    })
+
+
+@app.route("/api/chat/history")
+def api_chat_history():
+    """Retorna histórico do chat atual."""
+    project = request.args.get("project", "interface-kiro")
+    session = get_session(project)
+    return jsonify(session.history)
+
+
+@app.route("/api/chat/sessions")
+def api_chat_sessions():
+    """Lista sessões salvas do projeto."""
+    project = request.args.get("project", "interface-kiro")
+    session = get_session(project)
+    return jsonify(session.get_sessions())
+
+
+@app.route("/api/models")
+def api_models():
+    """Lista modelos disponíveis."""
     try:
-        env = os.environ.copy()
-        env["DISPLAY"] = DISPLAY
-        # Digita o texto
-        subprocess.run(
-            ["xdotool", "type", "--clearmodifiers", "--delay", "20", text],
-            env=env, timeout=10
+        result = subprocess.run(
+            ["kiro-cli", "chat", "--list-models", "-f", "json"],
+            capture_output=True, text=True, timeout=10,
         )
-        return jsonify({"ok": True, "typed": text})
+        return jsonify(json.loads(result.stdout) if result.stdout.strip() else [])
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/key", methods=["POST"])
-def api_key():
-    """Envia combinação de teclas via xdotool."""
-    data = request.get_json()
-    keys = data.get("keys", "")
-    if not keys:
-        return jsonify({"error": "Teclas vazias"}), 400
+# ─── WebSocket para chat em tempo real ───────────────────
 
-    try:
-        env = os.environ.copy()
-        env["DISPLAY"] = DISPLAY
-        subprocess.run(
-            ["xdotool", "key", "--clearmodifiers", keys],
-            env=env, timeout=5
-        )
-        return jsonify({"ok": True, "keys": keys})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+@socketio.on("chat_message")
+def handle_chat_message(data):
+    """Recebe mensagem via WebSocket e responde em tempo real."""
+    message = data.get("message", "").strip()
+    project = data.get("project", "interface-kiro")
 
+    if not message:
+        emit("chat_response", {"error": "Mensagem vazia"})
+        return
 
-@app.route("/api/click", methods=["POST"])
-def api_click():
-    """Clica numa posição do desktop."""
-    data = request.get_json()
-    x = data.get("x", 0)
-    y = data.get("y", 0)
+    session = get_session(project)
 
-    try:
-        env = os.environ.copy()
-        env["DISPLAY"] = DISPLAY
-        subprocess.run(
-            ["xdotool", "mousemove", str(x), str(y), "click", "1"],
-            env=env, timeout=5
-        )
-        return jsonify({"ok": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    if session.busy:
+        emit("chat_response", {"error": "Kiro está processando. Aguarde."})
+        return
 
+    emit("chat_status", {"status": "thinking", "project": project})
 
-# ─── WebSocket ───────────────────────────────────────────
+    # Roda em thread separada pra não bloquear
+    def process():
+        response = session.send(message)
+        socketio.emit("chat_response", {
+            "response": response,
+            "project": project,
+        })
+        socketio.emit("chat_status", {"status": "idle"})
+
+    thread = threading.Thread(target=process)
+    thread.start()
+
 
 @socketio.on("connect")
 def handle_connect():
     emit("status", {"connected": True})
 
 
-@socketio.on("disconnect")
-def handle_disconnect():
-    pass
-
-
 # ─── Main ────────────────────────────────────────────────
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("  Kiro Mobile Bridge v3")
+    print("  Kiro Mobile Bridge v4")
     print(f"  Interface: http://0.0.0.0:{APP_PORT}")
-    print(f"  VNC: {VNC_HOST}:{VNC_PORT}")
-    print(f"  API: /api/screenshot, /api/ocr, /api/type, /api/key")
+    print("  Backend: kiro-cli chat (direto)")
+    print("  API: /api/chat, /api/projects, /api/models")
     print("=" * 50)
 
-    start_websockify()
     socketio.run(app, host="0.0.0.0", port=APP_PORT, debug=False)
