@@ -109,11 +109,27 @@ class KiroChatSession:
             pass
 
     def send(self, message):
-        """Envia mensagem pro kiro-cli e retorna a resposta limpa."""
+        """Envia mensagem pro kiro-cli com contexto do histórico."""
         self.busy = True
         try:
-            cmd = [KIRO_CLI, "chat", "--no-interactive"]
-            cmd.append(message)
+            # Monta contexto com as últimas mensagens do histórico
+            context_parts = []
+            # Pega últimas 6 mensagens (3 pares user/assistant) pra dar contexto
+            recent = self.history[-6:] if len(self.history) > 6 else self.history
+            if recent:
+                context_parts.append("Contexto da conversa anterior sobre este projeto:")
+                for msg in recent:
+                    role = "Usuário" if msg["role"] == "user" else "Kiro"
+                    # Limita cada mensagem a 200 chars pra não estourar
+                    text = msg["text"][:200]
+                    context_parts.append(f"{role}: {text}")
+                context_parts.append("")
+                context_parts.append("Nova mensagem do usuário:")
+
+            context_parts.append(message)
+            full_message = "\n".join(context_parts)
+
+            cmd = [KIRO_CLI, "chat", "--no-interactive", full_message]
 
             result = subprocess.run(
                 cmd,
