@@ -130,16 +130,23 @@ class KiroChatSession:
             pass
 
     def send(self, message):
-        """Envia mensagem pro kiro-cli."""
+        """Envia mensagem pro kiro-cli com contexto interno."""
         self.busy = True
         try:
-            cmd = [KIRO_CLI, "chat", "--no-interactive", "-a"]
+            # Monta mensagem com contexto das últimas conversas
+            parts = []
+            recent = self.history[-4:] if len(self.history) > 4 else self.history
+            if recent:
+                parts.append("[Contexto anterior desta conversa:]")
+                for msg in recent:
+                    role = "User" if msg["role"] == "user" else "Assistant"
+                    text = msg["text"][:150].replace("\n", " ")
+                    parts.append(f"{role}: {text}")
+                parts.append("[Nova mensagem:]")
+            parts.append(message)
+            full_msg = "\n".join(parts)
 
-            # Usa --resume pra manter contexto (sessões são por diretório)
-            if not self.first_message:
-                cmd.append("--resume")
-
-            cmd.append(message)
+            cmd = [KIRO_CLI, "chat", "--no-interactive", "-a", full_msg]
 
             result = subprocess.run(
                 cmd,
