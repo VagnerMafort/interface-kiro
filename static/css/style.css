@@ -179,3 +179,14 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 /* ── New Project ── */
 .new-project-btn{width:100%;padding:10px;border:1px dashed var(--brd);border-radius:10px;background:none;color:var(--green);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:12px;transition:all .15s}
 .new-project-btn:hover{background:var(--bg3);border-style:solid}
+
+/* ── Delete button ── */
+.del-btn{background:none;border:none;color:var(--tx3);font-size:14px;cursor:pointer;padding:6px;border-radius:6px;margin-left:auto;flex-shrink:0;transition:all .15s}
+.del-btn:hover{color:var(--red);background:rgba(239,68,68,.1)}
+.file-item{position:relative}
+
+/* ── Response sizing fix ── */
+.msg-bubble{max-width:90%;word-break:break-word;overflow-wrap:break-word}
+.sys-bubble{font-size:14px;line-height:1.6}
+.sys-bubble br+br{display:none}
+#chat-messages{padding-bottom:16px}

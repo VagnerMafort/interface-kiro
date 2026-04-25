@@ -98,6 +98,9 @@
                         <input type="text" id="new-project-name" placeholder="Nome do projeto...">
                         <button id="btn-create-project" class="git-btn green-btn"><i class="fas fa-check"></i> Criar</button>
                     </div>
+                    <label style="font-size:12px;color:var(--tx3);display:flex;align-items:center;gap:6px;margin-top:6px">
+                        <input type="checkbox" id="create-github" checked> Criar também no GitHub
+                    </label>
                     <div id="new-project-output" class="git-output" style="display:none"></div>
                 </div>
                 <div id="project-list" class="file-list"></div>
@@ -207,7 +210,7 @@
                 chatList.innerHTML="";
                 projects.forEach(p=>{
                     // Lista na aba projetos
-                    list.innerHTML+=`<div class="file-item" data-project="${p.name}"><i class="fas fa-folder-open"></i><div><strong>${p.name}</strong><small>${p.path}</small></div></div>`;
+                    list.innerHTML+=`<div class="file-item" data-project="${p.name}"><i class="fas fa-folder-open"></i><div><strong>${p.name}</strong><small>${p.path}</small></div><button class="del-btn" data-del="${p.name}"><i class="fas fa-trash"></i></button></div>`;
                     // Chat na sidebar
                     chatList.innerHTML+=`<button class="chat-item${p.name===currentProject?" active":""}" data-project="${p.name}"><i class="fas fa-message"></i> ${p.name}</button>`;
                     // Inicializa histórico
@@ -218,8 +221,19 @@
                     switchProject(el.dataset.project);
                 }));
                 // Click nos projetos da aba
-                $$(".file-item[data-project]").forEach(el=>el.addEventListener("click",()=>{
+                $$(".file-item[data-project]").forEach(el=>el.addEventListener("click",(e)=>{
+                    if(e.target.closest(".del-btn"))return;
                     switchProject(el.dataset.project);
+                }));
+                // Delete projeto
+                $$(".del-btn[data-del]").forEach(el=>el.addEventListener("click",async(e)=>{
+                    e.stopPropagation();
+                    const name=el.dataset.del;
+                    if(!confirm(`Deletar projeto '${name}'?`))return;
+                    try{
+                        const r=await(await fetch("/api/project/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})})).json();
+                        if(r.error){alert(r.error);}else{loadProjects();}
+                    }catch(e){alert("Erro: "+e.message);}
                 }));
             }catch(e){}
         }
@@ -334,11 +348,21 @@
             const name=$("#new-project-name").value.trim();
             if(!name)return;
             const out=$("#new-project-output");
+            const createGH=$("#create-github").checked;
             out.style.display="block";out.textContent="Criando projeto...";
             try{
                 const r=await(await fetch("/api/project/create",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})})).json();
-                if(r.error){out.textContent="Erro: "+r.error;}
-                else{out.textContent=r.note;$("#new-project-name").value="";loadProjects();}
+                if(r.error){out.textContent="Erro: "+r.error;return;}
+                out.textContent=r.note;
+                // Cria no GitHub se marcado
+                if(createGH){
+                    out.textContent+="\nCriando no GitHub...";
+                    const gh=await(await fetch("/api/project/create-github",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})})).json();
+                    if(gh.error){out.textContent+="\nGitHub: "+gh.error;}
+                    else{out.textContent=`✓ Projeto '${name}' criado no GitHub e pronto!`;}
+                }
+                $("#new-project-name").value="";
+                loadProjects();
             }catch(e){out.textContent="Erro: "+e.message;}
         });
 

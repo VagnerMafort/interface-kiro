@@ -327,6 +327,101 @@ def api_create_project():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/project/delete", methods=["POST"])
+def api_delete_project():
+    """Deleta um projeto local."""
+    data = request.get_json() or {}
+    name = data.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "Nome vazio"}), 400
+
+    path = f"/root/{name}"
+    if not os.path.isdir(path):
+        return jsonify({"error": "Projeto não encontrado"}), 404
+
+    # Proteção: não deletar projetos importantes
+    protected = ["interface-kiro", "veo3-tool"]
+    if name in protected:
+        return jsonify({"error": f"Projeto '{name}' é protegido e não pode ser deletado"}), 403
+
+    try:
+        import shutil
+        shutil.rmtree(path)
+        # Remove sessão e histórico
+        if name in chat_sessions:
+            del chat_sessions[name]
+        hist_file = os.path.join(HISTORY_DIR, f"{name}.json")
+        if os.path.exists(hist_file):
+            os.remove(hist_file)
+        return jsonify({"ok": True, "name": name})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/project/create-github", methods=["POST"])
+def api_create_github_repo():
+    """Cria repo no GitHub via API e faz push."""
+    data = request.get_json() or {}
+    name = data.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "Nome vazio"}), 400
+
+    path = f"/root/{name}"
+    if not os.path.isdir(path):
+        return jsonify({"error": "Projeto local não encontrado"}), 404
+
+    try:
+        # Pega token do git credentials
+        token = None
+        username = "VagnerMafort"
+        try:
+            with open(os.path.expanduser("~/.git-credentials"), "r") as f:
+                import urllib.parse
+                parsed = urllib.parse.urlparse(f.read().strip())
+                token = parsed.password
+                username = parsed.username or username
+        except Exception:
+            pass
+
+        if not token:
+            return jsonify({"error": "Token GitHub não encontrado. Configure git credentials."}), 400
+
+        # Cria repo via GitHub API
+        import urllib.request
+        req = urllib.request.Request(
+            "https://api.github.com/user/repos",
+            data=json.dumps({"name": name, "private": False, "auto_init": False}).encode(),
+            headers={
+                "Authorization": f"token {token}",
+                "Accept": "application/vnd.github.v3+json",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+
+        try:
+            resp = urllib.request.urlopen(req, timeout=15)
+            repo_data = json.loads(resp.read())
+        except urllib.error.HTTPError as e:
+            body = e.read().decode()
+            if "already exists" in body:
+                pass  # Repo já existe, continua com push
+            else:
+                return jsonify({"error": f"GitHub API: {body}"}), 400
+
+        # Configura remote e push
+        remote_url = f"https://github.com/{username}/{name}.git"
+        subprocess.run(["git", "remote", "remove", "origin"], cwd=path, capture_output=True, timeout=5)
+        subprocess.run(["git", "remote", "add", "origin", remote_url], cwd=path, capture_output=True, timeout=5)
+        push = subprocess.run(["git", "push", "-u", "origin", "main"], cwd=path, capture_output=True, text=True, timeout=30)
+
+        output = push.stdout.strip() + "\n" + push.stderr.strip()
+        return jsonify({"ok": True, "output": strip_ansi(output.strip()), "remote": remote_url})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ─── WebSocket para chat em tempo real ───────────────────
 
 @socketio.on("chat_message")
