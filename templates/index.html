@@ -25,6 +25,7 @@
             <div class="sb-label">Navegação</div>
             <button class="sb-link" data-tab="actions"><i class="fas fa-grid"></i> Ações Rápidas</button>
             <button class="sb-link" data-tab="files"><i class="fas fa-folder"></i> Projetos & Git</button>
+            <button class="sb-link" data-tab="terminal"><i class="fas fa-terminal"></i> Terminal</button>
         </nav>
         <div class="sb-footer">
             <button id="btn-theme" class="sb-link"><i class="fas fa-moon" id="theme-icon"></i> <span id="theme-label">Modo Claro</span></button>
@@ -115,6 +116,18 @@
                 <div id="commit-row" class="commit-row" style="display:none">
                     <input type="text" id="commit-msg" placeholder="Mensagem do commit..." value="update via Kiro Mobile">
                     <button id="btn-git-confirm-push" class="git-btn green-btn"><i class="fas fa-check"></i> Confirmar</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Terminal -->
+        <section id="tab-terminal" class="tab">
+            <div class="terminal-container">
+                <div id="terminal-output" class="terminal-output"></div>
+                <div class="terminal-input-area">
+                    <span class="terminal-prompt">$</span>
+                    <input type="text" id="terminal-input" placeholder="Digite um comando..." autocomplete="off">
+                    <button id="btn-terminal-run" class="btn-icon send-btn"><i class="fas fa-play"></i></button>
                 </div>
             </div>
         </section>
@@ -250,7 +263,7 @@
             if(t!=="chat") $$(`.sb-link[data-tab="${t}"]`).forEach(b=>b.classList.add("active"));
             $$(".tab").forEach(x=>x.classList.remove("active"));
             $(`#tab-${t}`).classList.add("active");
-            $("#topbar-title").textContent={chat:"Kiro",actions:"Ações Rápidas",files:"Projetos & Git"}[t]||"Kiro";
+            $("#topbar-title").textContent={chat:"Kiro",actions:"Ações Rápidas",files:"Projetos & Git",terminal:"Terminal"}[t]||"Kiro";
             closeSB();
         }
 
@@ -339,6 +352,29 @@
         }
         loadProjects();
         setupVoice();
+
+        // ── Terminal ──
+        function termLog(text,type="output"){
+            const el=$("#terminal-output");
+            const div=document.createElement("div");
+            div.className="term-line "+type;
+            div.textContent=text;
+            el.appendChild(div);
+            el.scrollTop=el.scrollHeight;
+        }
+        async function runCmd(){
+            const input=$("#terminal-input"),cmd=input.value.trim();
+            if(!cmd)return;
+            termLog("$ "+cmd,"cmd");
+            input.value="";
+            try{
+                const r=await(await fetch("/api/terminal",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({command:cmd,project:currentProject})})).json();
+                if(r.error)termLog("Erro: "+r.error,"error");
+                else termLog(r.output||"(sem saída)");
+            }catch(e){termLog("Erro: "+e.message,"error");}
+        }
+        $("#btn-terminal-run").addEventListener("click",runCmd);
+        $("#terminal-input").addEventListener("keydown",e=>{if(e.key==="Enter")runCmd();});
 
         // ── Novo Projeto ──
         $("#btn-new-project").addEventListener("click",()=>{

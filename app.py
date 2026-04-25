@@ -342,6 +342,38 @@ def api_models():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/terminal", methods=["POST"])
+def api_terminal():
+    """Executa comando shell na VPS."""
+    data = request.get_json() or {}
+    command = data.get("command", "").strip()
+    project = data.get("project", "")
+
+    if not command:
+        return jsonify({"error": "Comando vazio"}), 400
+
+    # Segurança: bloqueia comandos perigosos
+    blocked = ["rm -rf /", "mkfs", "dd if=", "> /dev/sd", "shutdown", "reboot", "init 0"]
+    if any(b in command for b in blocked):
+        return jsonify({"error": "Comando bloqueado por segurança"}), 403
+
+    cwd = f"/root/{project}" if project and os.path.isdir(f"/root/{project}") else "/root"
+
+    try:
+        result = subprocess.run(
+            ["bash", "-c", command],
+            capture_output=True, text=True, timeout=60, cwd=cwd,
+        )
+        output = result.stdout.strip()
+        if result.stderr.strip():
+            output += "\n" + result.stderr.strip()
+        return jsonify({"output": output, "code": result.returncode})
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Timeout (60s)"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/project/create", methods=["POST"])
 def api_create_project():
     """Cria novo projeto: init git, cria no GitHub e clona."""
