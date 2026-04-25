@@ -304,42 +304,25 @@ def api_create_project():
         subprocess.run(["git", "commit", "-m", "initial commit"], cwd=path, capture_output=True, timeout=10)
         subprocess.run(["git", "branch", "-M", "main"], cwd=path, capture_output=True, timeout=10)
 
-        # Tenta criar no GitHub via gh ou API
-        gh_result = subprocess.run(
-            ["gh", "repo", "create", name, "--public", "--source", path, "--push"],
-            capture_output=True, text=True, timeout=30, cwd=path,
-        )
+        # Configura remote com username do git credentials
+        try:
+            with open(os.path.expanduser("~/.git-credentials"), "r") as f:
+                import urllib.parse
+                parsed = urllib.parse.urlparse(f.read().strip())
+                username = parsed.username or "VagnerMafort"
+        except Exception:
+            username = "VagnerMafort"
 
-        if gh_result.returncode != 0:
-            # Fallback: cria remote manualmente (usuário precisa criar o repo no GitHub)
-            # Tenta pegar username do git credentials
-            try:
-                with open(os.path.expanduser("~/.git-credentials"), "r") as f:
-                    cred = f.read()
-                    import urllib.parse
-                    parsed = urllib.parse.urlparse(cred.strip())
-                    username = parsed.username or "VagnerMafort"
-            except Exception:
-                username = "VagnerMafort"
-
-            remote_url = f"https://github.com/{username}/{name}.git"
-            subprocess.run(["git", "remote", "add", "origin", remote_url], cwd=path, capture_output=True, timeout=10)
-
-            return jsonify({
-                "ok": True,
-                "name": name,
-                "path": path,
-                "note": f"Projeto criado localmente. Crie o repo '{name}' no GitHub e depois faça Push.",
-                "remote": remote_url,
-            })
+        remote_url = f"https://github.com/{username}/{name}.git"
+        subprocess.run(["git", "remote", "add", "origin", remote_url], cwd=path, capture_output=True, timeout=10)
 
         return jsonify({
             "ok": True,
             "name": name,
             "path": path,
-            "note": "Projeto criado no GitHub e pronto!",
+            "note": f"Projeto criado! Crie o repo '{name}' no GitHub e faça Push.",
+            "remote": remote_url,
         })
-
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
