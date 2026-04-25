@@ -21,6 +21,7 @@ app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "kiro-mobile-bridge-secret")
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
 APP_PORT = int(os.getenv("APP_PORT", "9090"))
+KIRO_CLI = os.getenv("KIRO_CLI", "/root/.local/bin/kiro-cli")
 
 # Estado das sessões de chat
 chat_sessions = {}
@@ -39,7 +40,7 @@ class KiroChatSession:
         """Envia mensagem pro kiro-cli e retorna a resposta."""
         self.busy = True
         try:
-            cmd = ["kiro-cli", "chat", "--no-interactive", "-a"]
+            cmd = [KIRO_CLI, "chat", "--no-interactive", "-a"]
 
             if self.session_id:
                 cmd.extend(["--resume-id", self.session_id])
@@ -74,7 +75,7 @@ class KiroChatSession:
         """Lista sessões salvas do projeto."""
         try:
             result = subprocess.run(
-                ["kiro-cli", "chat", "--list-sessions", "-f", "json"],
+                [KIRO_CLI, "chat", "--list-sessions", "-f", "json"],
                 capture_output=True, text=True, timeout=10,
                 cwd=self.project_path,
             )
@@ -159,7 +160,7 @@ def api_models():
     """Lista modelos disponíveis."""
     try:
         result = subprocess.run(
-            ["kiro-cli", "chat", "--list-models", "-f", "json"],
+            [KIRO_CLI, "chat", "--list-models", "-f", "json"],
             capture_output=True, text=True, timeout=10,
         )
         return jsonify(json.loads(result.stdout) if result.stdout.strip() else [])
