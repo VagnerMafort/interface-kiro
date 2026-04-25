@@ -167,3 +167,11 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .commit-row{display:flex;gap:8px;margin-bottom:12px}
 .commit-row input{flex:1;background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:10px 12px;color:var(--tx);font-size:13px;outline:none}
 .commit-row input:focus{border-color:var(--green)}
+
+/* ── Chat List (sidebar) ── */
+.chat-list{display:flex;flex-direction:column;gap:2px;padding:0 4px}
+.chat-item{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border:none;background:none;color:var(--tx2);font-size:14px;border-radius:8px;cursor:pointer;transition:all .15s;text-align:left}
+.chat-item:hover{background:var(--bg4);color:var(--tx)}
+.chat-item.active{background:var(--green);color:#fff}
+.chat-item i{font-size:14px;width:18px;text-align:center}
+.sb-divider{height:1px;background:var(--brd);margin:8px 12px}

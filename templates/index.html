@@ -19,15 +19,12 @@
             <button id="btn-sb-close" class="btn-icon"><i class="fas fa-xmark"></i></button>
         </div>
         <nav class="sb-nav">
-            <div class="sb-label">Projeto Ativo</div>
-            <select id="project-select" class="sb-select">
-                <option value="interface-kiro">interface-kiro</option>
-                <option value="veo3-tool">veo3-tool</option>
-            </select>
-            <div class="sb-label" style="margin-top:16px">Navegação</div>
-            <button class="sb-link active" data-tab="chat"><i class="fas fa-message"></i> Chat</button>
+            <div class="sb-label">Chats</div>
+            <div id="chat-list" class="chat-list"></div>
+            <div class="sb-divider"></div>
+            <div class="sb-label">Navegação</div>
             <button class="sb-link" data-tab="actions"><i class="fas fa-grid"></i> Ações Rápidas</button>
-            <button class="sb-link" data-tab="files"><i class="fas fa-folder"></i> Projetos</button>
+            <button class="sb-link" data-tab="files"><i class="fas fa-folder"></i> Projetos & Git</button>
         </nav>
         <div class="sb-footer">
             <button id="btn-theme" class="sb-link"><i class="fas fa-moon" id="theme-icon"></i> <span id="theme-label">Modo Claro</span></button>
@@ -190,30 +187,48 @@
         }
 
         // ── Projetos ──
+        const chatHistories = {}; // guarda mensagens por projeto
+
         async function loadProjects(){
             try{
                 const res=await fetch("/api/projects");
                 const projects=await res.json();
-                const list=$("#project-list"),sel=$("#project-select");
-                list.innerHTML="";sel.innerHTML="";
+                const list=$("#project-list");
+                const chatList=$("#chat-list");
+                list.innerHTML="";
+                chatList.innerHTML="";
                 projects.forEach(p=>{
+                    // Lista na aba projetos
                     list.innerHTML+=`<div class="file-item" data-project="${p.name}"><i class="fas fa-folder-open"></i><div><strong>${p.name}</strong><small>${p.path}</small></div></div>`;
-                    sel.innerHTML+=`<option value="${p.name}"${p.name===currentProject?" selected":""}>${p.name}</option>`;
+                    // Chat na sidebar
+                    chatList.innerHTML+=`<button class="chat-item${p.name===currentProject?" active":""}" data-project="${p.name}"><i class="fas fa-message"></i> ${p.name}</button>`;
+                    // Inicializa histórico
+                    if(!chatHistories[p.name]) chatHistories[p.name]=[];
                 });
-                // Click pra trocar projeto
+                // Click nos chats da sidebar
+                $$(".chat-item[data-project]").forEach(el=>el.addEventListener("click",()=>{
+                    switchProject(el.dataset.project);
+                }));
+                // Click nos projetos da aba
                 $$(".file-item[data-project]").forEach(el=>el.addEventListener("click",()=>{
                     switchProject(el.dataset.project);
-                    switchTab("chat");
                 }));
             }catch(e){}
         }
 
+        function updateChatList(){
+            $$(".chat-item[data-project]").forEach(el=>{
+                el.classList.toggle("active",el.dataset.project===currentProject);
+            });
+        }
+
         // ── Tabs ──
         function switchTab(t){
-            $$(".sb-link[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
+            $$(".sb-link[data-tab]").forEach(b=>b.classList.remove("active"));
+            if(t!=="chat") $$(`.sb-link[data-tab="${t}"]`).forEach(b=>b.classList.add("active"));
             $$(".tab").forEach(x=>x.classList.remove("active"));
             $(`#tab-${t}`).classList.add("active");
-            $("#topbar-title").textContent={chat:"Kiro",actions:"Ações Rápidas",files:"Projetos"}[t]||"Kiro";
+            $("#topbar-title").textContent={chat:"Kiro",actions:"Ações Rápidas",files:"Projetos & Git"}[t]||"Kiro";
             closeSB();
         }
 
@@ -263,21 +278,29 @@
         $("#btn-theme").addEventListener("click",toggleTheme);
         $("#btn-send").addEventListener("click",()=>sendMsg($("#chat-input").value.trim()));
         $("#chat-input").addEventListener("keydown",e=>{if(e.key==="Enter")sendMsg($("#chat-input").value.trim());});
-        $("#project-select").addEventListener("change",e=>{switchProject(e.target.value);});
 
         async function switchProject(name){
+            if(name===currentProject){switchTab("chat");closeSB();return;}
+            // Salva mensagens do projeto atual
+            chatHistories[currentProject]=$("#chat-messages").innerHTML;
+            // Troca
             currentProject=name;
-            $("#project-select").value=name;
             $("#project-badge").textContent=name;
             $("#git-project-name").textContent=name;
             $("#git-output").style.display="none";
             $("#commit-row").style.display="none";
-            // Limpa chat visual
-            $("#chat-messages").innerHTML="";
-            const w=$("#chat-welcome");if(w)w.style.display="";
-            // Reseta sessão no servidor
-            await fetch("/api/chat/reset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({project:name})});
-            addMsg("system","Projeto ativo: "+name+". Nova conversa iniciada.");
+            updateChatList();
+            // Restaura mensagens do novo projeto
+            const saved=chatHistories[name];
+            if(saved && saved.length>0){
+                $("#chat-messages").innerHTML=saved;
+                const w=$("#chat-welcome");if(w)w.style.display="none";
+            }else{
+                $("#chat-messages").innerHTML="";
+                const w=$("#chat-welcome");if(w)w.style.display="";
+                addMsg("system","Projeto: "+name);
+            }
+            switchTab("chat");
         }
         loadProjects();
         setupVoice();
