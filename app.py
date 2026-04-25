@@ -24,46 +24,67 @@ def strip_ansi(text):
 
 
 def clean_response(text):
-    """Limpa a resposta do kiro-cli, removendo logs de ferramentas e mantendo só a resposta."""
+    """Limpa a resposta do kiro-cli — mantém APENAS o texto conversacional."""
     text = strip_ansi(text)
-
     lines = text.split('\n')
     
-    # Estratégia: pega tudo após o último bloco ">" (resposta do assistente)
-    # e remove linhas que são claramente logs de ferramentas
-    skip_words = [
+    # Palavras que indicam linha técnica/log
+    tech_words = [
         'using tool:', 'Completed in', 'Successfully', 'Operation ',
         'Reading file:', 'Reading directory:', 'Writing file:', 'Searching for:',
         'Getting symbols', 'Batch fs_', 'I will run', "I'll modify", "I'll create",
         'Purpose:', '↱', '⋮', '✓', '❗', '[K', '[2K', '[1G', '[1A',
-        'No matches found', 'Summary:', '▰', '▱', '[?25',
+        'No matches found', 'Summary:', '▰', '▱', '[?25', 'Found ',
+        'bytes (~', 'tokens)', 'symbols:', 'socketio.run', 'ssl_context',
+        'ssl.SSLContext', 'os.getenv', 'os.path', 'import ssl',
+        'subprocess.run', 'print(f"', 'print("', 'def ', 'class ',
+        'if __name__', 'kwargs[', 'kwargs =', '.load_cert', '.environ',
+        'Function ', 'Class ', ' at ', ':1', ':8',
+        'Overview]', 'more items found', 'Updating:', 'Creating:',
+        '```', 'python', 'bash', 'nginx', 'certbot',
+        'systemctl', 'chmod', 'nano ', 'cat >', 'ln -s',
+        'apt install', 'apt update', 'proxy_pass', 'proxy_set',
+        'listen ', 'server_name', 'location /', 'ssl_certificate',
+        'reverse_proxy', 'Caddyfile', '/etc/nginx', '/etc/letsencrypt',
+        'socketio.run(', 'app.py:', 'static/js/', 'templates/',
+        '.env', 'SSL_CERT=', 'SSL_KEY=', 'APP_PORT=',
+        'VNC_HOST=', 'VNC_PORT=', 'WEBSOCKIFY',
     ]
     
-    clean_lines = []
+    clean = []
     for line in lines:
-        stripped = line.strip()
-        if not stripped:
+        s = line.strip()
+        if not s:
             continue
-        # Remove prefixo ">" das respostas
-        if stripped.startswith('> '):
-            stripped = stripped[2:]
-        elif stripped == '>':
+        # Remove prefixo ">"
+        if s.startswith('> '):
+            s = s[2:]
+        elif s == '>':
             continue
-            
-        # Pula linhas de log/ferramentas
-        if any(w in stripped for w in skip_words):
+        # Pula linhas técnicas
+        if any(w in s for w in tech_words):
             continue
-        # Pula linhas que parecem diff (começam com +/- seguido de número)
-        if re.match(r'^[+-]\s*\d+:', stripped):
+        # Pula linhas que começam com - ou + (diff)
+        if s.startswith('- ') and len(s) < 100 and ':' in s:
             continue
-        # Pula linhas de número de linha de diff
-        if re.match(r'^\d+,\s*\d+:', stripped):
+        if s.startswith('+ ') and len(s) < 100 and ':' in s:
             continue
-            
-        clean_lines.append(stripped)
-
-    result = '\n'.join(clean_lines).strip()
-    return result if result else strip_ansi(text).strip()
+        # Pula linhas de números (diff)
+        if s[0].isdigit() and ',' in s[:10] and ':' in s[:15]:
+            continue
+        # Pula linhas muito curtas que parecem fragmentos de código
+        if len(s) < 5 and not s[0].isalpha():
+            continue
+        clean.append(s)
+    
+    result = '\n'.join(clean).strip()
+    
+    # Se ficou muito curto ou vazio, tenta pegar só parágrafos longos do original
+    if len(result) < 20:
+        paragraphs = [l.strip() for l in strip_ansi(text).split('\n') if len(l.strip()) > 30]
+        result = '\n'.join(paragraphs[-5:]) if paragraphs else strip_ansi(text).strip()
+    
+    return result
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "kiro-mobile-bridge-secret")
@@ -109,33 +130,16 @@ class KiroChatSession:
             pass
 
     def send(self, message):
-        """Envia mensagem pro kiro-cli com contexto do histórico."""
+        """Envia mensagem pro kiro-cli."""
         self.busy = True
         try:
-            # Monta contexto com as últimas mensagens do histórico
-            context_parts = []
-            # Pega últimas 6 mensagens (3 pares user/assistant) pra dar contexto
-            recent = self.history[-6:] if len(self.history) > 6 else self.history
-            if recent:
-                context_parts.append("Contexto da conversa anterior sobre este projeto:")
-                for msg in recent:
-                    role = "Usuário" if msg["role"] == "user" else "Kiro"
-                    # Limita cada mensagem a 200 chars pra não estourar
-                    text = msg["text"][:200]
-                    context_parts.append(f"{role}: {text}")
-                context_parts.append("")
-                context_parts.append("Nova mensagem do usuário:")
-
-            context_parts.append(message)
-            full_message = "\n".join(context_parts)
-
-            cmd = [KIRO_CLI, "chat", "--no-interactive", full_message]
+            cmd = [KIRO_CLI, "chat", "--no-interactive", message]
 
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=180,
+                timeout=120,
                 cwd=self.project_path,
                 env={**os.environ, "NO_COLOR": "1", "TERM": "dumb"},
             )
