@@ -580,4 +580,4 @@ if __name__ == "__main__":
         kwargs["certfile"] = ssl_cert
         kwargs["keyfile"] = ssl_key
 
-    socketio.run(app, host="0.0.0.0", port=APP_PORT, debug=False, **kwargs)
+    socketio.run(app, host="0.0.0.0", port=APP_PORT, debug=False, allow_unsafe_werkzeug=True, **kwargs)
