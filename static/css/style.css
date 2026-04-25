@@ -157,3 +157,13 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 
 /* ── Code in messages ── */
 .msg-bubble code{background:var(--bg4);padding:1px 5px;border-radius:4px;font-size:13px;font-family:monospace}
+
+/* ── Git Actions ── */
+.git-actions{display:flex;gap:8px;margin-bottom:12px}
+.git-btn{flex:1;padding:10px 12px;border:1px solid var(--brd);border-radius:10px;background:var(--bg3);color:var(--tx2);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
+.git-btn:active{transform:scale(.97)}
+.git-btn.green-btn{background:var(--green);color:#fff;border-color:var(--green)}
+.git-output{background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:12px;font-size:13px;font-family:monospace;white-space:pre-wrap;color:var(--tx2);margin-bottom:12px;max-height:200px;overflow-y:auto}
+.commit-row{display:flex;gap:8px;margin-bottom:12px}
+.commit-row input{flex:1;background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:10px 12px;color:var(--tx);font-size:13px;outline:none}
+.commit-row input:focus{border-color:var(--green)}

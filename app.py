@@ -166,6 +166,75 @@ def api_chat_reset():
     return jsonify({"ok": True, "project": project})
 
 
+@app.route("/api/git/status", methods=["POST"])
+def api_git_status():
+    """Git status do projeto."""
+    data = request.get_json() or {}
+    project = data.get("project", "interface-kiro")
+    path = f"/root/{project}"
+    if not os.path.isdir(path):
+        return jsonify({"error": "Projeto não encontrado"}), 404
+    try:
+        result = subprocess.run(
+            ["git", "status", "--short"],
+            capture_output=True, text=True, timeout=10, cwd=path,
+        )
+        return jsonify({"output": result.stdout.strip(), "project": project})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/git/push", methods=["POST"])
+def api_git_push():
+    """Git add + commit + push do projeto."""
+    data = request.get_json() or {}
+    project = data.get("project", "interface-kiro")
+    message = data.get("message", "update via Kiro Mobile")
+    path = f"/root/{project}"
+    if not os.path.isdir(path):
+        return jsonify({"error": "Projeto não encontrado"}), 404
+    try:
+        env = os.environ.copy()
+        # Git add
+        subprocess.run(["git", "add", "-A"], cwd=path, timeout=10,
+                       capture_output=True, text=True)
+        # Git commit
+        commit = subprocess.run(
+            ["git", "commit", "-m", message],
+            cwd=path, timeout=10, capture_output=True, text=True,
+        )
+        if "nothing to commit" in (commit.stdout + commit.stderr):
+            return jsonify({"output": "Nada para commitar. Tudo já está atualizado.", "project": project})
+        # Git push
+        push = subprocess.run(
+            ["git", "push"],
+            cwd=path, timeout=30, capture_output=True, text=True,
+        )
+        output = commit.stdout.strip() + "\n" + push.stdout.strip() + push.stderr.strip()
+        return jsonify({"output": strip_ansi(output.strip()), "project": project})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/git/pull", methods=["POST"])
+def api_git_pull():
+    """Git pull do projeto."""
+    data = request.get_json() or {}
+    project = data.get("project", "interface-kiro")
+    path = f"/root/{project}"
+    if not os.path.isdir(path):
+        return jsonify({"error": "Projeto não encontrado"}), 404
+    try:
+        result = subprocess.run(
+            ["git", "pull"],
+            cwd=path, timeout=30, capture_output=True, text=True,
+        )
+        output = result.stdout.strip() + "\n" + result.stderr.strip()
+        return jsonify({"output": strip_ansi(output.strip()), "project": project})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/models")
 def api_models():
     """Lista modelos disponíveis."""

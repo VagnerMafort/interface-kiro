@@ -96,6 +96,18 @@
             <div class="tab-scroll">
                 <div class="section-title">Seus Projetos</div>
                 <div id="project-list" class="file-list"></div>
+
+                <div class="section-title" style="margin-top:24px">Git — <span id="git-project-name" style="color:var(--green)">interface-kiro</span></div>
+                <div class="git-actions">
+                    <button id="btn-git-status" class="git-btn"><i class="fas fa-circle-info"></i> Status</button>
+                    <button id="btn-git-push" class="git-btn green-btn"><i class="fas fa-arrow-up"></i> Push</button>
+                    <button id="btn-git-pull" class="git-btn"><i class="fas fa-arrow-down"></i> Pull</button>
+                </div>
+                <div id="git-output" class="git-output" style="display:none"></div>
+                <div id="commit-row" class="commit-row" style="display:none">
+                    <input type="text" id="commit-msg" placeholder="Mensagem do commit..." value="update via Kiro Mobile">
+                    <button id="btn-git-confirm-push" class="git-btn green-btn"><i class="fas fa-check"></i> Confirmar</button>
+                </div>
             </div>
         </section>
     </main>
@@ -257,6 +269,9 @@
             currentProject=name;
             $("#project-select").value=name;
             $("#project-badge").textContent=name;
+            $("#git-project-name").textContent=name;
+            $("#git-output").style.display="none";
+            $("#commit-row").style.display="none";
             // Limpa chat visual
             $("#chat-messages").innerHTML="";
             const w=$("#chat-welcome");if(w)w.style.display="";
@@ -266,6 +281,41 @@
         }
         loadProjects();
         setupVoice();
+
+        // ── Git ──
+        function showGitOutput(text){const el=$("#git-output");el.style.display="block";el.textContent=text;}
+        $("#git-project-name").textContent=currentProject;
+
+        $("#btn-git-status").addEventListener("click",async()=>{
+            showGitOutput("Verificando...");
+            try{
+                const r=await(await fetch("/api/git/status",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({project:currentProject})})).json();
+                showGitOutput(r.output||r.error||"Limpo — nada para commitar");
+            }catch(e){showGitOutput("Erro: "+e.message);}
+        });
+
+        $("#btn-git-push").addEventListener("click",()=>{
+            $("#commit-row").style.display="flex";
+            $("#git-project-name").textContent=currentProject;
+        });
+
+        $("#btn-git-confirm-push").addEventListener("click",async()=>{
+            const msg=$("#commit-msg").value.trim()||"update via Kiro Mobile";
+            showGitOutput("Fazendo push...");
+            try{
+                const r=await(await fetch("/api/git/push",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({project:currentProject,message:msg})})).json();
+                showGitOutput(r.output||r.error);
+                $("#commit-row").style.display="none";
+            }catch(e){showGitOutput("Erro: "+e.message);}
+        });
+
+        $("#btn-git-pull").addEventListener("click",async()=>{
+            showGitOutput("Fazendo pull...");
+            try{
+                const r=await(await fetch("/api/git/pull",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({project:currentProject})})).json();
+                showGitOutput(r.output||r.error);
+            }catch(e){showGitOutput("Erro: "+e.message);}
+        });
     </script>
 </body>
 </html>
