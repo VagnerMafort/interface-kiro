@@ -302,13 +302,16 @@ def api_git_push():
 
 @app.route("/api/git/pull", methods=["POST"])
 def api_git_pull():
-    """Git pull do projeto."""
+    """Git pull do projeto — descarta mudanças locais e sincroniza com GitHub."""
     data = request.get_json() or {}
     project = data.get("project", "interface-kiro")
     path = f"/root/{project}"
     if not os.path.isdir(path):
         return jsonify({"error": "Projeto não encontrado"}), 404
     try:
+        # Descarta mudanças locais primeiro
+        subprocess.run(["git", "checkout", "--", "."], cwd=path, timeout=10, capture_output=True)
+        # Puxa atualizações
         result = subprocess.run(
             ["git", "pull"],
             cwd=path, timeout=30, capture_output=True, text=True,
