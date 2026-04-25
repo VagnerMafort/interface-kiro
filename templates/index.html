@@ -92,6 +92,14 @@
         <section id="tab-files" class="tab">
             <div class="tab-scroll">
                 <div class="section-title">Seus Projetos</div>
+                <button id="btn-new-project" class="new-project-btn"><i class="fas fa-plus"></i> Novo Projeto</button>
+                <div id="new-project-form" style="display:none;margin-bottom:12px">
+                    <div class="commit-row">
+                        <input type="text" id="new-project-name" placeholder="Nome do projeto...">
+                        <button id="btn-create-project" class="git-btn green-btn"><i class="fas fa-check"></i> Criar</button>
+                    </div>
+                    <div id="new-project-output" class="git-output" style="display:none"></div>
+                </div>
                 <div id="project-list" class="file-list"></div>
 
                 <div class="section-title" style="margin-top:24px">Git — <span id="git-project-name" style="color:var(--green)">interface-kiro</span></div>
@@ -296,14 +304,56 @@
                 $("#chat-messages").innerHTML=saved;
                 const w=$("#chat-welcome");if(w)w.style.display="none";
             }else{
-                $("#chat-messages").innerHTML="";
-                const w=$("#chat-welcome");if(w)w.style.display="";
-                addMsg("system","Projeto: "+name);
+                // Tenta carregar do servidor
+                try{
+                    const r=await fetch("/api/chat/history?project="+name);
+                    const hist=await r.json();
+                    if(hist&&hist.length>0){
+                        const w=$("#chat-welcome");if(w)w.style.display="none";
+                        hist.forEach(m=>addMsg(m.role==="user"?"user":"system",m.text));
+                    }else{
+                        const w=$("#chat-welcome");if(w)w.style.display="";
+                        addMsg("system","Projeto: "+name);
+                    }
+                }catch(e){
+                    const w=$("#chat-welcome");if(w)w.style.display="";
+                    addMsg("system","Projeto: "+name);
+                }
             }
             switchTab("chat");
         }
         loadProjects();
         setupVoice();
+
+        // ── Novo Projeto ──
+        $("#btn-new-project").addEventListener("click",()=>{
+            const f=$("#new-project-form");
+            f.style.display=f.style.display==="none"?"block":"none";
+        });
+        $("#btn-create-project").addEventListener("click",async()=>{
+            const name=$("#new-project-name").value.trim();
+            if(!name)return;
+            const out=$("#new-project-output");
+            out.style.display="block";out.textContent="Criando projeto...";
+            try{
+                const r=await(await fetch("/api/project/create",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})})).json();
+                if(r.error){out.textContent="Erro: "+r.error;}
+                else{out.textContent=r.note;$("#new-project-name").value="";loadProjects();}
+            }catch(e){out.textContent="Erro: "+e.message;}
+        });
+
+        // ── Carregar histórico salvo ──
+        async function loadHistory(){
+            try{
+                const r=await fetch("/api/chat/history?project="+currentProject);
+                const hist=await r.json();
+                if(hist&&hist.length>0){
+                    const w=$("#chat-welcome");if(w)w.style.display="none";
+                    hist.forEach(m=>addMsg(m.role==="user"?"user":"system",m.text));
+                }
+            }catch(e){}
+        }
+        loadHistory();
 
         // ── Git ──
         function showGitOutput(text){const el=$("#git-output");el.style.display="block";el.textContent=text;}

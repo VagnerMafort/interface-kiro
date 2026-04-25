@@ -175,3 +175,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .chat-item.active{background:var(--green);color:#fff}
 .chat-item i{font-size:14px;width:18px;text-align:center}
 .sb-divider{height:1px;background:var(--brd);margin:8px 12px}
+
+/* ── New Project ── */
+.new-project-btn{width:100%;padding:10px;border:1px dashed var(--brd);border-radius:10px;background:none;color:var(--green);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:12px;transition:all .15s}
+.new-project-btn:hover{background:var(--bg3);border-style:solid}

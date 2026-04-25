@@ -28,6 +28,8 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
 APP_PORT = int(os.getenv("APP_PORT", "9090"))
 KIRO_CLI = os.getenv("KIRO_CLI", "/root/.local/bin/kiro-cli")
+HISTORY_DIR = os.path.join(os.path.dirname(__file__), "chat_history")
+os.makedirs(HISTORY_DIR, exist_ok=True)
 
 # Estado das sessões de chat
 chat_sessions = {}
@@ -38,9 +40,30 @@ class KiroChatSession:
 
     def __init__(self, project_path):
         self.project_path = project_path
-        self.history = []
+        self.project_name = os.path.basename(project_path)
+        self.history = self._load_history()
         self.busy = False
-        self.first_message = True
+        self.first_message = len(self.history) == 0
+
+    def _history_file(self):
+        return os.path.join(HISTORY_DIR, f"{self.project_name}.json")
+
+    def _load_history(self):
+        path = self._history_file()
+        if os.path.exists(path):
+            try:
+                with open(path, "r") as f:
+                    return json.load(f)
+            except Exception:
+                return []
+        return []
+
+    def _save_history(self):
+        try:
+            with open(self._history_file(), "w") as f:
+                json.dump(self.history, f, ensure_ascii=False)
+        except Exception:
+            pass
 
     def send(self, message):
         """Envia mensagem pro kiro-cli e retorna a resposta."""
@@ -70,6 +93,7 @@ class KiroChatSession:
             self.history.append({"role": "user", "text": message})
             self.history.append({"role": "assistant", "text": response})
             self.first_message = False
+            self._save_history()
 
             return response
 
@@ -84,6 +108,7 @@ class KiroChatSession:
         """Reseta a sessão (novo chat)."""
         self.history = []
         self.first_message = True
+        self._save_history()
 
 
 def get_session(project):
@@ -244,6 +269,77 @@ def api_models():
             capture_output=True, text=True, timeout=10,
         )
         return jsonify(json.loads(result.stdout) if result.stdout.strip() else [])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/project/create", methods=["POST"])
+def api_create_project():
+    """Cria novo projeto: init git, cria no GitHub e clona."""
+    data = request.get_json() or {}
+    name = data.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "Nome do projeto vazio"}), 400
+
+    # Sanitiza nome
+    name = re.sub(r'[^a-zA-Z0-9_-]', '-', name).lower()
+    path = f"/root/{name}"
+
+    if os.path.exists(path):
+        return jsonify({"error": f"Projeto '{name}' já existe"}), 400
+
+    try:
+        # Cria diretório
+        os.makedirs(path)
+
+        # Init git
+        subprocess.run(["git", "init"], cwd=path, capture_output=True, timeout=10)
+
+        # Cria README
+        with open(f"{path}/README.md", "w") as f:
+            f.write(f"# {name}\n\nProjeto criado via Kiro Mobile.\n")
+
+        # Commit inicial
+        subprocess.run(["git", "add", "-A"], cwd=path, capture_output=True, timeout=10)
+        subprocess.run(["git", "commit", "-m", "initial commit"], cwd=path, capture_output=True, timeout=10)
+        subprocess.run(["git", "branch", "-M", "main"], cwd=path, capture_output=True, timeout=10)
+
+        # Tenta criar no GitHub via gh ou API
+        gh_result = subprocess.run(
+            ["gh", "repo", "create", name, "--public", "--source", path, "--push"],
+            capture_output=True, text=True, timeout=30, cwd=path,
+        )
+
+        if gh_result.returncode != 0:
+            # Fallback: cria remote manualmente (usuário precisa criar o repo no GitHub)
+            # Tenta pegar username do git credentials
+            try:
+                with open(os.path.expanduser("~/.git-credentials"), "r") as f:
+                    cred = f.read()
+                    import urllib.parse
+                    parsed = urllib.parse.urlparse(cred.strip())
+                    username = parsed.username or "VagnerMafort"
+            except Exception:
+                username = "VagnerMafort"
+
+            remote_url = f"https://github.com/{username}/{name}.git"
+            subprocess.run(["git", "remote", "add", "origin", remote_url], cwd=path, capture_output=True, timeout=10)
+
+            return jsonify({
+                "ok": True,
+                "name": name,
+                "path": path,
+                "note": f"Projeto criado localmente. Crie o repo '{name}' no GitHub e depois faça Push.",
+                "remote": remote_url,
+            })
+
+        return jsonify({
+            "ok": True,
+            "name": name,
+            "path": path,
+            "note": "Projeto criado no GitHub e pronto!",
+        })
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
