@@ -27,60 +27,43 @@ def clean_response(text):
     """Limpa a resposta do kiro-cli, removendo logs de ferramentas e mantendo só a resposta."""
     text = strip_ansi(text)
 
-    # Remove linhas de progresso/ferramentas
-    skip_patterns = [
-        r'^\s*(Reading|Writing|Searching|Getting|Batch|Creating|Updating|I will run|I\'ll modify|I\'ll create)',
-        r'^\s*(↱|⋮|✓|❗|─|\[K|\[2K|\[1G|\[1A)',
-        r'^\s*-\s*(Completed|Summary)',
-        r'^\s*Purpose:',
-        r'^\s*\(using tool:',
-        r'^\s*\d+,\s*\d+:',  # diff line numbers
-        r'^\s*[+-]\s*\d+:',  # diff additions/removals
-        r'^\s*Operation \d+:',
-        r'^\s*\d+ more items found',
-        r'^\s*Successfully ',
-        r'^\s*No matches found',
-    ]
-
     lines = text.split('\n')
+    
+    # Estratégia: pega tudo após o último bloco ">" (resposta do assistente)
+    # e remove linhas que são claramente logs de ferramentas
+    skip_words = [
+        'using tool:', 'Completed in', 'Successfully', 'Operation ',
+        'Reading file:', 'Reading directory:', 'Writing file:', 'Searching for:',
+        'Getting symbols', 'Batch fs_', 'I will run', "I'll modify", "I'll create",
+        'Purpose:', '↱', '⋮', '✓', '❗', '[K', '[2K', '[1G', '[1A',
+        'No matches found', 'Summary:', '▰', '▱', '[?25',
+    ]
+    
     clean_lines = []
-    in_tool_block = False
-
     for line in lines:
         stripped = line.strip()
-
-        # Detecta início de bloco de ferramenta
-        if any(re.match(p, stripped) for p in skip_patterns):
-            in_tool_block = True
+        if not stripped:
             continue
-
-        # Detecta fim de bloco (linha com > no início = resposta do assistente)
-        if stripped.startswith('>') or stripped.startswith('##'):
-            in_tool_block = False
-            # Remove o > do início
-            cleaned = re.sub(r'^>\s*', '', stripped)
-            if cleaned:
-                clean_lines.append(cleaned)
+        # Remove prefixo ">" das respostas
+        if stripped.startswith('> '):
+            stripped = stripped[2:]
+        elif stripped == '>':
             continue
-
-        # Pula linhas de bloco de ferramenta
-        if in_tool_block:
-            # Mas se parece texto normal longo, inclui
-            if len(stripped) > 50 and not any(c in stripped for c in ['✓', '↱', '⋮', '[K', '+++']):
-                clean_lines.append(stripped)
+            
+        # Pula linhas de log/ferramentas
+        if any(w in stripped for w in skip_words):
             continue
-
-        # Linha normal
-        if stripped:
-            clean_lines.append(stripped)
+        # Pula linhas que parecem diff (começam com +/- seguido de número)
+        if re.match(r'^[+-]\s*\d+:', stripped):
+            continue
+        # Pula linhas de número de linha de diff
+        if re.match(r'^\d+,\s*\d+:', stripped):
+            continue
+            
+        clean_lines.append(stripped)
 
     result = '\n'.join(clean_lines).strip()
-
-    # Se ficou vazio, retorna o texto original limpo
-    if not result:
-        return strip_ansi(text).strip()
-
-    return result
+    return result if result else strip_ansi(text).strip()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "kiro-mobile-bridge-secret")
@@ -130,11 +113,6 @@ class KiroChatSession:
         self.busy = True
         try:
             cmd = [KIRO_CLI, "chat", "--no-interactive"]
-
-            # Depois da primeira mensagem, usa --resume pra manter contexto
-            if not self.first_message:
-                cmd.append("--resume")
-
             cmd.append(message)
 
             result = subprocess.run(
