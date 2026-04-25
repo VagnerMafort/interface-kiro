@@ -312,6 +312,8 @@
             $("#git-output").style.display="none";
             $("#commit-row").style.display="none";
             updateChatList();
+            // Limpa chat visual
+            $("#chat-messages").innerHTML="";
             // Restaura mensagens do novo projeto
             const saved=chatHistories[name];
             if(saved && saved.length>0){
@@ -322,16 +324,15 @@
                 try{
                     const r=await fetch("/api/chat/history?project="+name);
                     const hist=await r.json();
+                    $("#chat-messages").innerHTML="";
                     if(hist&&hist.length>0){
                         const w=$("#chat-welcome");if(w)w.style.display="none";
                         hist.forEach(m=>addMsg(m.role==="user"?"user":"system",m.text));
                     }else{
                         const w=$("#chat-welcome");if(w)w.style.display="";
-                        addMsg("system","Projeto: "+name);
                     }
                 }catch(e){
                     const w=$("#chat-welcome");if(w)w.style.display="";
-                    addMsg("system","Projeto: "+name);
                 }
             }
             switchTab("chat");
