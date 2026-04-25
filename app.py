@@ -34,13 +34,13 @@ chat_sessions = {}
 
 
 class KiroChatSession:
-    """Gerencia uma sessão de chat com kiro-cli."""
+    """Gerencia uma sessão de chat com kiro-cli usando --resume."""
 
-    def __init__(self, project_path, session_id=None):
+    def __init__(self, project_path):
         self.project_path = project_path
-        self.session_id = session_id
         self.history = []
         self.busy = False
+        self.first_message = True
 
     def send(self, message):
         """Envia mensagem pro kiro-cli e retorna a resposta."""
@@ -48,8 +48,9 @@ class KiroChatSession:
         try:
             cmd = [KIRO_CLI, "chat", "--no-interactive", "-a"]
 
-            if self.session_id:
-                cmd.extend(["--resume-id", self.session_id])
+            # Depois da primeira mensagem, usa --resume pra manter contexto
+            if not self.first_message:
+                cmd.append("--resume")
 
             cmd.append(message)
 
@@ -64,10 +65,11 @@ class KiroChatSession:
             response = result.stdout.strip()
             response = strip_ansi(response)
             if not response and result.stderr:
-                response = f"[Erro] {result.stderr.strip()}"
+                response = f"[Erro] {strip_ansi(result.stderr.strip())}"
 
             self.history.append({"role": "user", "text": message})
             self.history.append({"role": "assistant", "text": response})
+            self.first_message = False
 
             return response
 
@@ -78,17 +80,10 @@ class KiroChatSession:
         finally:
             self.busy = False
 
-    def get_sessions(self):
-        """Lista sessões salvas do projeto."""
-        try:
-            result = subprocess.run(
-                [KIRO_CLI, "chat", "--list-sessions", "-f", "json"],
-                capture_output=True, text=True, timeout=10,
-                cwd=self.project_path,
-            )
-            return json.loads(result.stdout) if result.stdout.strip() else []
-        except Exception:
-            return []
+    def reset(self):
+        """Reseta a sessão (novo chat)."""
+        self.history = []
+        self.first_message = True
 
 
 def get_session(project):
@@ -99,6 +94,14 @@ def get_session(project):
             path = "/root"
         chat_sessions[project] = KiroChatSession(path)
     return chat_sessions[project]
+
+
+def reset_session(project):
+    """Reseta sessão do projeto (novo chat)."""
+    if project in chat_sessions:
+        chat_sessions[project].reset()
+    else:
+        get_session(project)
 
 
 # ─── Rotas ───────────────────────────────────────────────
@@ -154,12 +157,13 @@ def api_chat_history():
     return jsonify(session.history)
 
 
-@app.route("/api/chat/sessions")
-def api_chat_sessions():
-    """Lista sessões salvas do projeto."""
-    project = request.args.get("project", "interface-kiro")
-    session = get_session(project)
-    return jsonify(session.get_sessions())
+@app.route("/api/chat/reset", methods=["POST"])
+def api_chat_reset():
+    """Reseta o chat do projeto (nova conversa)."""
+    data = request.get_json() or {}
+    project = data.get("project", "interface-kiro")
+    reset_session(project)
+    return jsonify({"ok": True, "project": project})
 
 
 @app.route("/api/models")

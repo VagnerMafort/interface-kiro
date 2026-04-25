@@ -190,10 +190,7 @@
                 });
                 // Click pra trocar projeto
                 $$(".file-item[data-project]").forEach(el=>el.addEventListener("click",()=>{
-                    currentProject=el.dataset.project;
-                    sel.value=currentProject;
-                    $("#project-badge").textContent=currentProject;
-                    addMsg("system","Projeto trocado para: "+currentProject);
+                    switchProject(el.dataset.project);
                     switchTab("chat");
                 }));
             }catch(e){}
@@ -254,7 +251,19 @@
         $("#btn-theme").addEventListener("click",toggleTheme);
         $("#btn-send").addEventListener("click",()=>sendMsg($("#chat-input").value.trim()));
         $("#chat-input").addEventListener("keydown",e=>{if(e.key==="Enter")sendMsg($("#chat-input").value.trim());});
-        $("#project-select").addEventListener("change",e=>{currentProject=e.target.value;$("#project-badge").textContent=currentProject;});
+        $("#project-select").addEventListener("change",e=>{switchProject(e.target.value);});
+
+        async function switchProject(name){
+            currentProject=name;
+            $("#project-select").value=name;
+            $("#project-badge").textContent=name;
+            // Limpa chat visual
+            $("#chat-messages").innerHTML="";
+            const w=$("#chat-welcome");if(w)w.style.display="";
+            // Reseta sessão no servidor
+            await fetch("/api/chat/reset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({project:name})});
+            addMsg("system","Projeto ativo: "+name+". Nova conversa iniciada.");
+        }
         loadProjects();
         setupVoice();
     </script>
