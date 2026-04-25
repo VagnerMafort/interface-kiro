@@ -194,15 +194,23 @@
             $("#btn-send").disabled=true;
 
             try{
+                const controller=new AbortController();
+                const timeout=setTimeout(()=>controller.abort(),180000); // 3 min
                 const res=await fetch("/api/chat",{
                     method:"POST",
                     headers:{"Content-Type":"application/json"},
-                    body:JSON.stringify({message:text,project:currentProject})
+                    body:JSON.stringify({message:text,project:currentProject}),
+                    signal:controller.signal
                 });
+                clearTimeout(timeout);
+                if(!res.ok){addMsg("system","⚠️ Erro do servidor ("+res.status+"). Tente novamente.");return;}
                 const data=await res.json();
                 if(data.error){addMsg("system","⚠️ "+data.error);}
                 else{addMsg("system",data.response||"(sem resposta)");}
-            }catch(e){addMsg("system","Erro de conexão: "+e.message);}
+            }catch(e){
+                if(e.name==="AbortError"){addMsg("system","⚠️ Tempo esgotado (3 min). O Kiro demorou demais. Tente uma pergunta mais simples.");}
+                else{addMsg("system","⚠️ Erro de conexão. Recarregue a página e tente novamente.");}
+            }
             finally{
                 sending=false;
                 $("#typing-indicator").classList.add("hidden");

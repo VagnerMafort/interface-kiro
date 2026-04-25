@@ -144,7 +144,7 @@ class KiroChatSession:
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=120,
+                timeout=180,
                 cwd=self.project_path,
                 env={**os.environ, "NO_COLOR": "1", "TERM": "dumb"},
             )
